@@ -1,0 +1,8 @@
+Ignore the secrets file so the API key is never uploaded
+
+.streamlit/secrets.toml
+
+Ignore python cache files
+
+pycache/
+*.pyc
