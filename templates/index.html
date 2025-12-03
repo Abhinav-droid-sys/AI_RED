@@ -1025,35 +1025,47 @@
 
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
 
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            
-            if (!message || isSending) return;
+       async function sendMessage() {
+        const message = messageInput.value.trim();
 
-            isSending = true;
-            document.getElementById('sendBtn').disabled = true;
-            lastUserPrompt = message;
+        if (!message || isLoading) return;
 
-            const emptyState = document.getElementById('emptyState');
-            if (emptyState) emptyState.remove();
+    // Clear input BEFORE sending
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    sendBtn.disabled = true;
+    isLoading = true;
 
-            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            addMessageToUI(message, 'user', time);
+    // Add user message to chat
+    addMessageToDOM('user', message);
 
-            if (isIncognito) {
-                tempIncognitoHistory.push({ role: 'user', content: message });
-            } else {
-                if (!chats[currentChatId]) {
-                    chats[currentChatId] = {
-                        id: currentChatId,
-                        title: 'New Chat',
-                        messages: [],
-                        timestamp: Date.now()
-                    };
-                }
-                chats[currentChatId].messages.push({ role: 'user', content: message, time });
-            }
+    // Send to CORRECT endpoint
+    try {
+        const response = await fetch('/api/chat', {  // ← FIXED ROUTE
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message })  // ← EXPLICIT MESSAGE
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            addMessageToDOM('ai', data.response);
+        } else {
+            addMessageToDOM('ai', 'Error: ' + (data.error || 'Unknown'));
+        }
+    } catch (error) {
+        console.error('Connection error:', error);
+        addMessageToDOM('ai', 'Connection error. Please try again.');
+    }
+
+    sendBtn.disabled = false;
+    isLoading = false;
+    messageInput.focus();
+}
+
 
             input.value = '';
             input.style.height = 'auto';
@@ -1264,3 +1276,4 @@
     </script>
 </body>
 </html>
+
