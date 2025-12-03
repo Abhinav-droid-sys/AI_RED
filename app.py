@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import os
+import random
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -8,27 +9,25 @@ def index():
     print("🌐 Chat UI served")
     return render_template('index.html')
 
-@app.route('/chat', methods=['POST'])
+@app.route('/api/chat', methods=['POST'])  # ← FIXED ROUTE
 def chat():
-    print("🔥 Chat working!")
+    print("🔥 /api/chat WORKING!")
     data = request.json or {}
-    message = data.get('message', 'Hello!') 
+    message = data.get('message', 'Hello!')
     
-    # Simple AI-like responses (no external API)
     responses = [
-        "RED here! Your message: '{}'. AI backend working perfectly!".format(message[:50]),
-        "✅ Connection success! Flask + Render = LIVE 🚀",
-        "Chat endpoint active. Message received: '{}'".format(message[:30]),
-        "RED AI online! Your site at redai.live is working!"
+        f"🚀 RED AI LIVE! You: '{message[:50]}'",
+        "✅ redai.live fully working! Backend OK!",
+        f"💬 Chat perfect. Message: '{message[:30]}...'",
+        "Your AI assistant RED online! 🎉"
     ]
     
-    import random
     response = random.choice(responses)
-    
     print(f"🤖 Sent: {response[:50]}")
+    
     return jsonify({'success': True, 'response': response})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"🚀 RED AI starting on port {port}")
+    print(f"🚀 RED AI live on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
