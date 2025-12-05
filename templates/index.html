@@ -1,599 +1,615 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <!-- Exact viewport meta for better mobile layout -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>RED — Your intelligent AI companion</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>RED — Your intelligent AI companion</title>
+  <meta name="description" content="RED — intelligent, fast AI assistant for students, developers and creators. Chat instantly, keep or remove history, and control privacy." />
+  <meta name="theme-color" content="#0A0A0B" />
 
-    <!-- SEO / Social meta -->
-    <meta name="description" content="RED — intelligent, fast AI assistant for students, developers and creators. Chat instantly, keep or remove history, and control privacy." />
-    <meta name="keywords" content="AI assistant, chatbot, RED AI, chat, Groq, Llama" />
-    <meta name="theme-color" content="#0A0A0B" />
+  <!-- Embedded SVG favicon -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23FF3B30'/%3E%3Ctext x='50%25' y='55%25' font-size='18' text-anchor='middle' font-family='Inter, Arial, sans-serif' fill='white' font-weight='700'%3ER%3C/text%3E%3C/svg%3E" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="RED — Your intelligent AI companion" />
-    <meta property="og:description" content="Chat with RED — quick, focused AI assistant for students, devs & creators." />
-    <meta property="og:image" content="" />
-    <meta property="og:type" content="website" />
+  <!-- Fonts + icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 
-    <!-- Favicon (inline SVG data URI — no external file needed) -->
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23FF3B30'/%3E%3Ctext x='50%25' y='55%25' font-size='18' text-anchor='middle' font-family='Inter, Arial, sans-serif' fill='white' font-weight='700'%3ER%3C/text%3E%3C/svg%3E" />
+  <style>
+    /* ---------- Base ---------- */
+    :root{
+      --primary:#FF3B30;
+      --primary-2:#FF6B6B;
+      --bg:#060607;
+      --card:#0f0f12;
+      --glass: rgba(255,255,255,0.04);
+      --muted:#9b9ba6;
+      --success:#34C759;
+      --glass-border: rgba(255,255,255,0.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:var(--bg);
+      color:#fff;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow:hidden;
+      padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    /* ---------- Dynamic background layers (two layers for crossfade) ---------- */
+    .bg-wrap{
+      position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .bg-layer{
+      position:absolute; inset:-10% ; background-position:center center; background-size:cover;
+      transition: opacity 900ms cubic-bezier(.2,.9,.2,1), transform 900ms ease;
+      filter: blur(28px) brightness(0.36) saturate(1.08);
+      opacity:0; transform: scale(1.04);
+    }
+    .bg-layer.visible{ opacity:1; transform:scale(1); }
+    /* a subtle hue overlay to tie into red theme */
+    .bg-hue{
+      position:absolute; inset:0; background: radial-gradient(circle at 30% 20%, rgba(255,59,48,0.06), rgba(10,10,11,0.8));
+      mix-blend-mode: overlay; pointer-events:none;
+    }
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="" crossorigin="anonymous">
+    /* nebula / particle canvas */
+    #particlesCanvas{ position: absolute; inset:0; z-index:0; pointer-events:none; }
 
-    <style>
-        /* ========== Base ========== */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        :root{
-            --primary: #FF3B30;
-            --primary-dark: #CC2E26;
-            --bg-dark: #0A0A0B;
-            --bg-card: #16161A;
-            --text-primary: #FFFFFF;
-            --text-secondary: #94949E;
-            --border: #26262C;
-            --success: #34C759;
-            --incognito: #666666;
-        }
-        html,body { height: 100%; }
-        body{
-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-            background: var(--bg-dark);
-            color: var(--text-primary);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            transition: background 0.3s ease;
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-        }
+    /* ---------- Main app grid ---------- */
+    .app {
+      position:relative; z-index:2;
+      max-width:1400px; margin:18px auto; height: calc(100vh - 36px);
+      display:grid; grid-template-columns: 320px 1fr; gap:18px; padding:14px;
+    }
 
-        /* ========== App Layout ========== */
-        .app-container {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 16px;
-            max-width: 1400px;
-            margin: 20px auto;
-            padding: 16px;
-            height: calc(100vh - 40px);
-        }
+    /* ---------- Sidebar (glass) ---------- */
+    .sidebar{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:16px; border:1px solid var(--glass-border);
+      padding:18px; display:flex; flex-direction:column; gap:12px; backdrop-filter: blur(10px) saturate(1.1);
+      min-height:0; /* for flex overflow */
+      overflow:auto;
+    }
+    .logo {display:flex; gap:12px; align-items:center}
+    .logo-badge{
+      width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;box-shadow:0 10px 30px rgba(255,59,48,0.12);
+    }
+    .brand { font-weight:800; font-size:20px; letter-spacing:-0.4px; background: linear-gradient(135deg,var(--primary),var(--primary-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .tag { color:var(--muted); font-size:12px; margin-top:2px; }
 
-        /* Sidebar */
-        .sidebar {
-            background: rgba(22,22,26,0.8);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            overflow: auto;
-        }
-        .logo-section { display:flex; align-items:center; gap:12px; }
-        .logo-icon{
-            width:48px;height:48px;border-radius:12px;
-            background:linear-gradient(135deg,var(--primary),var(--primary-dark));
-            display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 30px rgba(255,59,48,0.2);
-            color:white;
-        }
-        .logo-text { font-size:22px; font-weight:800; letter-spacing:-0.5px; background:linear-gradient(135deg,var(--primary),#FF6B6B); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .new-chat-btn{
+      display:flex; align-items:center; gap:10px; padding:12px;border-radius:12px;border:none; cursor:pointer;
+      background: linear-gradient(90deg, rgba(255,59,48,0.12), rgba(255,107,107,0.06)); color:var(--primary);
+      font-weight:700; justify-content:center;
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+    .new-chat-btn:active{ transform:translateY(2px) }
 
-        .new-chat-btn {
-            width:100%; padding:12px 14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:10px; justify-content:center;
-        }
+    .chats-list{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+    .chat-item{ padding:10px 12px; border-radius:10px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; gap:8px; cursor:pointer; border:1px solid transparent;}
+    .chat-item:hover{ background: rgba(255,255,255,0.02); color:#fff; border-color:var(--glass-border); }
+    .chat-item.active{ border-color: rgba(255,59,48,0.18); background: rgba(255,59,48,0.03); color:#fff; }
 
-        .chats-section { margin-top:6px; display:flex;flex-direction:column; gap:8px; }
-        .chats-label { font-size:12px; color:var(--text-secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.6px; }
-        .chat-item { padding:10px 12px; border-radius:10px; color:var(--text-secondary); display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; border:1px solid transparent; }
-        .chat-item:hover { background:var(--bg-card); color:var(--text-primary); border-color:var(--border); }
-        .chat-item.active { background:var(--bg-card); border:1px solid var(--primary); color:var(--text-primary); }
+    /* ---------- Chat panel (glass + content) ---------- */
+    .chat-panel{
+      display:flex; flex-direction:column; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:16px; border:1px solid var(--glass-border); overflow:hidden; backdrop-filter: blur(12px) saturate(1.08);
+    }
 
-        /* ========== Chat panel ========== */
-        .chat-container {
-            display:flex;
-            flex-direction:column;
-            background: rgba(22,22,26,0.8);
-            border-radius:16px;
-            border:1px solid var(--border);
-            overflow: hidden;
-        }
+    .chat-header{
+      display:flex; align-items:center; justify-content:space-between; padding:18px; border-bottom:1px solid rgba(255,255,255,0.02);
+    }
+    .header-left h1{ font-size:20px; margin:0; font-weight:800; background:linear-gradient(135deg,var(--primary),var(--primary-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .subtitle { color:var(--muted); font-size:13px; margin-top:4px; }
 
-        .chat-header { display:flex; align-items:center; justify-content:space-between; padding:18px; border-bottom:1px solid var(--border); gap:12px; }
-        .header-left h1 { font-size:22px; margin-bottom:4px; font-weight:800; background:linear-gradient(135deg,var(--primary),#FF6B6B); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-        .header-subtitle { font-size:13px; color:var(--text-secondary); }
+    .status { display:flex; gap:10px; align-items:center; }
+    .status .badge{ padding:6px 10px; border-radius:18px; font-weight:700; font-size:13px; display:flex; gap:8px; align-items:center; background: rgba(52,199,89,0.06); color:var(--success); border:1px solid rgba(52,199,89,0.12); }
 
-        .header-right { display:flex; align-items:center; gap:8px; }
-        .status-badge { display:flex; align-items:center; gap:8px; padding:6px 12px; border-radius:20px; background: rgba(52,199,89,0.08); border:1px solid rgba(52,199,89,0.18); color:var(--success); font-weight:700; font-size:13px; }
-        .incognito-btn { padding:8px 12px; border-radius:10px; background: rgba(255,59,48,0.08); border:1px solid rgba(255,59,48,0.16); color:var(--primary); cursor:pointer; font-weight:700; display:flex; align-items:center; gap:8px; }
+    /* messages area */
+    .messages {
+      flex:1; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:16px;
+      /* subtle glass inner shadow for depth */
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .empty{ display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; color:var(--muted); text-align:center; padding:12px; }
 
-        /* messages area */
-        .messages-wrapper { flex:1; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:16px; }
-        .empty-state { display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; text-align:center; color:var(--text-secondary); padding:24px; }
-        .empty-icon{ width:96px;height:96px;border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:46px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); box-shadow:0 20px 60px rgba(255,59,48,0.12); }
+    .msg { display:flex; gap:12px; align-items:flex-end; max-width:100% }
+    .msg.user{ flex-direction:row-reverse; }
+    .avatar{ width:44px;height:44px;border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); }
+    .bubble{ padding:12px 16px; border-radius:14px; line-height:1.45; font-size:15px; max-width:72%; word-wrap:break-word; }
+    .bubble.assistant{ background: rgba(255,255,255,0.02); border:1px solid var(--glass-border); }
+    .bubble.user{ background:linear-gradient(135deg,var(--primary),var(--primary-2)); color:white; box-shadow:0 10px 30px rgba(255,59,48,0.08); }
 
-        .message { display:flex; gap:12px; align-items:flex-end; max-width:100%; }
-        .message.user { flex-direction:row-reverse; }
-        .message-avatar { width:40px;height:40px;border-radius:10px; display:flex; align-items:center; justify-content:center; }
-        .message.assistant .message-avatar { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; box-shadow:0 6px 20px rgba(255,59,48,0.12); }
-        .message.user .message-avatar { background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border); }
+    .msg-time { font-size:12px; color:var(--muted); margin-top:6px; }
 
-        .message-bubble { padding:14px 16px; border-radius:14px; font-size:15px; line-height:1.5; max-width:75%; word-wrap:break-word; }
-        .message.assistant .message-bubble { background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); border-radius:16px 16px 16px 6px; }
-        .message.user .message-bubble { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; border-radius:16px 16px 6px 16px; box-shadow:0 10px 30px rgba(255,59,48,0.12); }
+    /* ---------- Input area (improved height / text vertical alignment) ---------- */
+    .input-area{
+      padding:14px; border-top:1px solid rgba(255,255,255,0.02); background:linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
+    }
 
-        .message-time { font-size:11px; color:var(--text-secondary); margin-top:6px; }
+    .input-row{
+      display:flex; gap:12px; align-items:flex-end;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px; padding:10px; border:1px solid var(--glass-border);
+    }
 
-        /* input area */
-        .input-area { padding:14px; border-top:1px solid var(--border); background: rgba(18,18,20,0.6); }
-        .input-wrapper { display:flex; gap:10px; align-items:flex-end; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:10px; min-height:52px; }
-        #messageInput { flex:1; background:transparent; color:var(--text-primary); border:none; outline:none; font-size:15px; resize:none; max-height:120px; }
-        .send-btn { width:44px;height:44px;border-radius:10px;border:none;background:var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    /* textarea with more top padding so text sits a little higher inside the field */
+    #messageInput{
+      flex:1; resize:none; background:transparent; color:var(--text); border:none; outline:none; font-size:15px;
+      padding:12px 10px 8px 10px; line-height:1.35; min-height:64px; max-height:160px;
+      /* ensure the visible caret area is slightly higher (upper-height visual) */
+      padding-top:16px;
+    }
 
-        /* footer */
-        .site-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 18px; border-top:1px solid var(--border); background:transparent; font-size:13px; color:var(--text-secondary); }
-        .footer-links { display:flex; gap:12px; align-items:center; }
-        .footer-links a { color:var(--text-secondary); text-decoration:none; font-weight:600; }
-        .footer-links a:hover { color:var(--text-primary); }
+    .send {
+      width:52px;height:52px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      display:flex;align-items:center;justify-content:center;color:white;font-size:18px; cursor:pointer;
+      box-shadow:0 10px 30px rgba(255,59,48,0.12);
+    }
 
-        /* small screens */
-        @media (max-width: 900px) {
-            .app-container { grid-template-columns: 1fr; height: 100vh; margin: 0; padding: 8px; gap:10px; }
-            .sidebar { order:2; width:100%; display:flex; flex-direction:row; gap:8px; overflow:auto; padding:10px; align-items:center; }
-            .chats-section { display:none; } /* compact on mobile — chats accessible via new chat + recent */
-            .chat-container { order:1; height: calc(100vh - 140px); }
-            .messages-wrapper { padding:12px 10px; }
-            .message-bubble { max-width:85%; }
-            body { overflow: hidden; }
-        }
+    /* ---------- Floating orb (Gemini-like) ---------- */
+    .orb{
+      position:absolute; right:36px; top:36px; width:74px; height:74px; border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), rgba(255,59,48,0.12) 30%, rgba(255,59,48,0.18));
+      box-shadow:0 20px 60px rgba(255,59,48,0.08), inset 0 6px 20px rgba(255,255,255,0.02);
+      display:flex; align-items:center; justify-content:center; color:white; font-weight:800; z-index:3; pointer-events:none;
+      transform: translateZ(0);
+      animation: orbFloat 6s ease-in-out infinite;
+      backdrop-filter: blur(6px) saturate(1.2);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    @keyframes orbFloat {
+      0%{ transform: translateY(0) }
+      50%{ transform: translateY(-12px) }
+      100%{ transform: translateY(0) }
+    }
 
-        /* accessibility focus */
-        button:focus, a:focus, textarea:focus { outline: 3px solid rgba(255,59,48,0.18); outline-offset: 2px; border-radius:8px; }
+    /* ---------- Responsive ---------- */
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; height:100vh; margin:0; padding:10px; gap:10px; }
+      .sidebar{ order:2; display:flex; flex-direction:row; gap:10px; overflow:auto; align-items:center; padding:10px; }
+      .chats-list{ display:none }
+      .chat-panel{ order:1; height: calc(100vh - 120px) }
+      body{ overflow:hidden }
+    }
 
-        /* subtle animation for logo */
-        @keyframes logoPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.03); } }
-        .logo-icon { animation: logoPulse 3s ease-in-out infinite; }
+    /* accessible focus styles */
+    button:focus, textarea:focus, a:focus { outline: 3px solid rgba(255,59,48,0.14); outline-offset:2px; border-radius:8px; }
 
-        /* markdown code style inside bubble */
-        code { background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; font-size:13px; }
-
-    </style>
+    /* small helpers */
+    .muted{ color:var(--muted) }
+  </style>
 </head>
-<body class="normal-mode" aria-labelledby="pageTitle">
-    <!-- Video background (kept but made less heavy on mobile) -->
-    <div class="video-background" aria-hidden="true" style="position:fixed; inset:0; z-index:0; pointer-events:none;">
-        <video autoplay muted loop playsinline style="width:100%; height:100%; object-fit:cover; filter: blur(48px) brightness(0.36);">
-            <source src="{{ url_for('static', filename='bg.mp4') }}" type="video/mp4">
-        </video>
-        <div style="position:absolute; inset:0; background: radial-gradient(circle at 50% 40%, rgba(255,59,48,0.06), rgba(10,10,11,0.95));"></div>
-    </div>
+<body>
+  <!-- BACKGROUND LAYERS -->
+  <div class="bg-wrap" aria-hidden="true">
+    <div id="bgLayerA" class="bg-layer"></div>
+    <div id="bgLayerB" class="bg-layer"></div>
+    <div class="bg-hue"></div>
+    <canvas id="particlesCanvas"></canvas>
+  </div>
 
-    <main class="app-container" role="main" style="position:relative; z-index:2;">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar" aria-label="Chat sidebar">
-            <div class="logo-section" role="img" aria-label="RED logo">
-                <div class="logo-icon"><i class="fas fa-fire" aria-hidden="true"></i></div>
-                <div>
-                    <div class="logo-text">RED</div>
-                    <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Fast. Focused. Friendly.</div>
-                </div>
-            </div>
+  <!-- floating orb for 'Gemini' vibe -->
+  <div class="orb" aria-hidden="true"><i class="fas fa-rocket" style="transform:scale(0.9);"></i></div>
 
-            <button class="new-chat-btn" onclick="createNewChat()" aria-label="Start new chat">
-                <i class="fas fa-plus" aria-hidden="true"></i>
-                <span>New Chat</span>
-            </button>
+  <div class="app" role="main" aria-labelledby="appTitle">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" aria-label="Chat sidebar">
+      <div class="logo">
+        <div class="logo-badge"><i class="fas fa-fire" aria-hidden="true"></i></div>
+        <div>
+          <div class="brand" id="appTitle">RED</div>
+          <div class="tag">Fast • Focused • Friendly</div>
+        </div>
+      </div>
 
-            <div class="chats-section" id="chatsSection" aria-live="polite">
-                <div class="chats-label">Recent Chats</div>
-                <div id="chatsList" role="list"></div>
-            </div>
+      <button class="new-chat-btn" id="newChatBtn" title="Start a new chat">
+        <i class="fas fa-plus"></i> <span>New Chat</span>
+      </button>
 
-            <div style="margin-top:auto;">
-                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">Small note</div>
-                <div style="font-size:13px; color:var(--text-secondary); line-height:1.4;">
-                    Messages are stored locally in your browser unless you use incognito mode. See Privacy for details.
-                </div>
-            </div>
-        </aside>
+      <div class="chats-list" id="chatsList" role="list" aria-live="polite"></div>
 
-        <!-- Chat Column -->
-        <section class="chat-container" aria-labelledby="pageTitle">
-            <header class="chat-header">
-                <div class="header-left">
-                    <h1 id="pageTitle">RED</h1>
-                    <p class="header-subtitle" id="chatSubtitle">Your intelligent AI companion</p>
-                </div>
+      <div style="margin-top:auto;font-size:13px;color:var(--muted)">
+        <div style="margin-bottom:8px;font-weight:700">Note</div>
+        <div>Messages are saved locally by default. Use Incognito to keep chats temporary.</div>
+      </div>
+    </aside>
 
-                <div class="header-right" role="region" aria-label="Status and controls">
-                    <div class="status-badge" title="Service status">
-                        <span class="status-dot" style="width:8px;height:8px;border-radius:50%; background:var(--success); display:inline-block;"></span>
-                        <span id="statusText">Online</span>
-                    </div>
+    <!-- CHAT PANEL -->
+    <section class="chat-panel" aria-label="Chat panel">
+      <header class="chat-header" role="banner">
+        <div>
+          <h1>RED</h1>
+          <div class="subtitle" id="chatSub">Your intelligent AI companion</div>
+        </div>
+        <div class="status" role="status">
+          <div class="badge" id="serviceStatus"><span style="width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--success)"></span> Online</div>
+          <button id="incognitoBtn" class="new-chat-btn" style="padding:8px 10px;font-weight:600"> <i class="fas fa-user-secret"></i> <span id="incText"> Incognito</span></button>
+        </div>
+      </header>
 
-                    <button class="incognito-btn" id="incognitoBtn" onclick="toggleIncognito()" aria-pressed="false" title="Toggle incognito (temporary chat)">
-                        <i class="fas fa-user-secret" aria-hidden="true"></i>
-                        <span id="incognitoText">Go Incognito</span>
-                    </button>
-                </div>
-            </header>
+      <div class="messages" id="messages" tabindex="0" aria-live="polite">
+        <div class="empty" id="empty">
+          <div style="width:88px;height:88px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--primary-2));display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 30px 80px rgba(255,59,48,0.12);"><i class="fas fa-fire"></i></div>
+          <div style="font-weight:700;font-size:18px">Welcome to RED</div>
+          <div class="muted">Ask anything — code, homework, creative ideas.</div>
+        </div>
+      </div>
 
-            <div class="messages-wrapper" id="messagesWrapper" tabindex="0" aria-live="polite">
-                <div class="empty-state" id="emptyState" role="status">
-                    <div class="empty-icon"><i class="fas fa-fire" style="font-size:36px;"></i></div>
-                    <h2>Welcome to RED</h2>
-                    <p>Start a conversation with your AI assistant. Ask anything — homework, code help, or creative ideas.</p>
-                </div>
-            </div>
+      <form class="input-area" onsubmit="(e=>{e.preventDefault(); sendMessage();})(event)" aria-label="Message input form">
+        <div class="input-row" role="group">
+          <textarea id="messageInput" rows="1" autocomplete="off" placeholder="Ask me anything — e.g. 'Explain quicksort in 2 minutes'"></textarea>
+          <button id="sendBtn" class="send" type="button" title="Send"><i class="fas fa-paper-plane"></i></button>
+        </div>
 
-            <form class="input-area" onsubmit="(function(e){e.preventDefault(); sendMessage();})(event)" aria-label="Message input form">
-                <div class="input-wrapper">
-                    <textarea id="messageInput" placeholder="Ask me anything — e.g. 'Explain quicksort in 2 minutes'." rows="1" aria-label="Message" autocomplete="off"></textarea>
-                    <button class="send-btn" id="sendBtn" type="button" aria-label="Send message">
-                        <i class="fas fa-paper-plane" aria-hidden="true"></i>
-                    </button>
-                </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; color:var(--muted); font-size:13px">
+          <div>RED • Built with focus</div>
+          <div style="display:flex; gap:12px;">
+            <a href="/privacy" style="color:var(--muted); text-decoration:none">Privacy</a>
+            <a href="mailto:contact@redai.live" style="color:var(--muted); text-decoration:none">Contact</a>
+          </div>
+        </div>
+      </form>
+    </section>
+  </div>
 
-                <div class="site-footer" role="contentinfo">
-                    <div style="font-size:13px; color:var(--text-secondary);">RED • Built with focus</div>
-                    <div class="footer-links">
-                        <a href="/privacy" id="privacyLink" title="Privacy & data usage">Privacy</a>
-                        <a href="#" id="termsLink" title="Terms of service (coming soon)" onclick="alert('Terms page not set up yet.'); return false;">Terms</a>
-                        <a href="mailto:contact@redai.live" title="Contact us">Contact</a>
-                    </div>
-                </div>
-            </form>
-        </section>
-    </main>
+  <script>
+    /* ========= Variables & state ========= */
+    let currentChatId = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2,9);
+    let chats = {};
+    let isIncognito = false;
+    let tempHistory = [];
+    let isSending = false;
 
-    <script>
-        /* ========== Client-side chat UX (kept & improved) ========== */
+    const bgA = document.getElementById('bgLayerA');
+    const bgB = document.getElementById('bgLayerB');
+    let activeBg = 'A'; // toggles A/B
+    const queries = ['technology,abstract','cyberpunk,city','neon,gradient','red,technology','futuristic,ai','computer,code','digital,art','space,nebula'];
 
-        let currentChatId = generateId();
-        let chats = {};
-        let isIncognito = false;
-        let isSending = false;
-        let tempIncognitoHistory = [];
-        let lastUserPrompt = null;
+    /* ========== Utility ========= */
+    function randQuery(){
+      return queries[Math.floor(Math.random()*queries.length)];
+    }
+    function lowResUrl(q, seed){
+      // use source.unsplash with query for random thematic photos (low-res)
+      return `https://source.unsplash.com/800x450/?${encodeURIComponent(q)}&sig=${seed}`;
+    }
+    function hiResUrl(q, seed){
+      return `https://source.unsplash.com/1600x900/?${encodeURIComponent(q)}&sig=${seed}`;
+    }
 
-        function generateId() {
-            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
+    // fallback to picsum if unsplash blocked
+    function fallbackHi(seed){ return `https://picsum.photos/1600/900?random=${seed}` }
 
-        function loadChats() {
-            try {
-                const saved = localStorage.getItem('red_chats');
-                if (saved) {
-                    chats = JSON.parse(saved);
-                    renderChatsList();
-                }
-            } catch (e) {
-                console.warn('Failed to load chats from localStorage', e);
-            }
-        }
+    function setBgImage(url, layer){
+      const el = (layer === 'A') ? bgA : bgB;
+      el.style.backgroundImage = `url("${url}")`;
+      // ensure it gets loaded and then make visible
+      const img = new Image();
+      img.onload = () => {
+        el.classList.add('visible');
+      };
+      img.onerror = () => {
+        // try fallback
+        el.style.backgroundImage = `url("${fallbackHi(Date.now())}")`;
+        el.classList.add('visible');
+      };
+      img.src = url;
+    }
 
-        function saveChats() {
-            try {
-                localStorage.setItem('red_chats', JSON.stringify(chats));
-            } catch (e) {
-                console.warn('Failed to save chats to localStorage', e);
-            }
-        }
+    async function crossfadeNewBackground(){
+      // preload low-res, then high-res, apply with crossfade
+      const q = randQuery();
+      const seed = Date.now();
+      const low = lowResUrl(q, seed);
+      const high = hiResUrl(q, seed);
 
-        function renderChatsList() {
-            const chatsList = document.getElementById('chatsList');
-            const chatIds = Object.keys(chats).sort((a, b) => (chats[b].timestamp || 0) - (chats[a].timestamp || 0));
-            if (chatIds.length === 0) {
-                chatsList.innerHTML = '<div class="empty-chats" style="color:var(--text-secondary); font-size:13px;">No chats yet</div>';
-                return;
-            }
-            chatsList.innerHTML = chatIds.map(id => `
-                <div role="listitem" class="chat-item ${id === currentChatId && !isIncognito ? 'active' : ''}" onclick="loadChat('${id}')">
-                    <span class="chat-item-text">${escapeHtml(chats[id].title || 'New Chat')}</span>
-                    <i class="fas fa-trash chat-delete" onclick="event.stopPropagation(); deleteChat('${id}')"></i>
-                </div>
-            `).join('');
-        }
+      const target = (activeBg === 'A') ? 'B' : 'A';
+      const layerEl = target === 'A' ? bgA : bgB;
+      // hide target first
+      layerEl.classList.remove('visible');
+      // set low-res quickly
+      setBgImage(low, target);
+      // when low loaded, then fetch hi-res and replace
+      const hiImg = new Image();
+      hiImg.onload = () => {
+        layerEl.style.backgroundImage = `url("${high}")`;
+        // ensure smooth final fade
+        setTimeout(()=> layerEl.classList.add('visible'), 80);
+      };
+      hiImg.onerror = () => {
+        // fallback to picsum
+        layerEl.style.backgroundImage = `url("${fallbackHi(seed)}")`;
+        setTimeout(()=> layerEl.classList.add('visible'), 80);
+      };
+      hiImg.src = high;
 
-        function createNewChat() {
-            if (isIncognito) toggleIncognito(); // leaving incognito when starting new persistent chat
-            if (chats[currentChatId] && chats[currentChatId].messages && chats[currentChatId].messages.length > 0) {
-                saveChats();
-            }
-            currentChatId = generateId();
-            chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
-            clearMessages();
-            saveChats();
-            renderChatsList();
-            document.getElementById('chatSubtitle').textContent = 'New conversation';
-            document.getElementById('messageInput').focus();
-        }
+      // switch active
+      activeBg = target;
+      // fade out the other layer gently
+      const other = target === 'A' ? bgB : bgA;
+      other.classList.remove('visible');
+    }
 
-        function loadChat(chatId) {
-            if (isIncognito) toggleIncognito();
-            currentChatId = chatId;
-            const chat = chats[chatId] || { messages: [] };
-            clearMessages();
-            if (chat.messages) {
-                chat.messages.forEach(msg => addMessageToUI(msg.content, msg.role, msg.time));
-            }
-            document.getElementById('chatSubtitle').textContent = chats[chatId] && chats[chatId].title ? chats[chatId].title : 'Conversation';
-            renderChatsList();
-        }
+    /* ========= Particles (subtle nebula drift) ========= */
+    const canvas = document.getElementById('particlesCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    function resizeCanvas(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
-        function deleteChat(chatId) {
-            if (!confirm('Delete this chat?')) return;
-            delete chats[chatId];
-            saveChats();
-            if (chatId === currentChatId) createNewChat();
-            else renderChatsList();
-        }
+    function initParticles(){
+      particles = [];
+      const count = Math.max(12, Math.floor((canvas.width*canvas.height)/120000));
+      for(let i=0;i<count;i++){
+        particles.push({
+          x: Math.random()*canvas.width,
+          y: Math.random()*canvas.height,
+          r: 80 + Math.random()*220,
+          a: 0.02 + Math.random()*0.06,
+          vx: (Math.random()-0.5)*0.05,
+          vy: (Math.random()-0.5)*0.05,
+          hue: 340 + Math.random()*20 // reddish magentaish
+        });
+      }
+    }
 
-        function clearMessages() {
-            document.getElementById('messagesWrapper').innerHTML = `
-                <div class="empty-state" id="emptyState">
-                    <div class="empty-icon"><i class="fas fa-fire" style="font-size:36px;"></i></div>
-                    <h2>Welcome to RED</h2>
-                    <p>Start a conversation with your AI assistant. Ask anything!</p>
-                </div>
-            `;
-        }
+    function drawParticles(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(const p of particles){
+        p.x += p.vx; p.y += p.vy;
+        // wrap
+        if(p.x < -p.r) p.x = canvas.width + p.r;
+        if(p.x > canvas.width + p.r) p.x = -p.r;
+        if(p.y < -p.r) p.y = canvas.height + p.r;
+        if(p.y > canvas.height + p.r) p.y = -p.r;
 
-        function toggleIncognito() {
-            isIncognito = !isIncognito;
-            const body = document.body;
-            const statusText = document.getElementById('statusText');
-            const incognitoText = document.getElementById('incognitoText');
-            const incBtn = document.getElementById('incognitoBtn');
+        const grad = ctx.createRadialGradient(p.x, p.y, p.r*0.1, p.x, p.y, p.r);
+        grad.addColorStop(0, `hsla(${p.hue}, 85%, 60%, ${0.08})`);
+        grad.addColorStop(0.45, `hsla(${p.hue - 10}, 80%, 45%, ${0.02})`);
+        grad.addColorStop(1, `hsla(${p.hue - 20}, 70%, 30%, 0)`);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+      }
+      requestAnimationFrame(drawParticles);
+    }
 
-            if (isIncognito) {
-                body.classList.add('incognito-mode');
-                statusText.textContent = 'Incognito';
-                incognitoText.textContent = 'Exit Incognito';
-                incBtn.setAttribute('aria-pressed', 'true');
-                document.getElementById('chatSubtitle').textContent = 'Temporary chat (not saved)';
-                tempIncognitoHistory = [];
-                // do not persist chats while incognito
-            } else {
-                body.classList.remove('incognito-mode');
-                statusText.textContent = 'Online';
-                incognitoText.textContent = 'Go Incognito';
-                incBtn.setAttribute('aria-pressed', 'false');
-                // when exiting incognito create new persistent chat if there was conversation
-                if (tempIncognitoHistory.length > 0) {
-                    createNewChat();
-                }
-            }
-        }
+    /* ========= Chat logic (preserve earlier behavior) ========= */
+    const chatsListEl = document.getElementById('chatsList');
+    const messagesEl = document.getElementById('messages');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const inputEl = document.getElementById('messageInput');
+    const incBtn = document.getElementById('incognitoBtn');
 
-        // textarea auto-resize
-        const textarea = document.getElementById('messageInput');
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    function saveChats(){ try{ localStorage.setItem('red_chats', JSON.stringify(chats)); }catch(e){console.warn(e)} }
+    function loadChats(){ try{ const s = localStorage.getItem('red_chats'); if(s) chats = JSON.parse(s); }catch(e){console.warn(e)} renderChats(); }
+    function renderChats(){
+      const ids = Object.keys(chats).sort((a,b)=> (chats[b].timestamp||0)-(chats[a].timestamp||0));
+      if(ids.length===0){ chatsListEl.innerHTML = '<div class="muted">No chats yet</div>'; return; }
+      chatsListEl.innerHTML = ids.map(id=>{
+        return `<div role="listitem" class="chat-item" data-id="${id}" onclick="loadChat('${id}')"><div>${escapeHtml(chats[id].title||'New Chat')}</div><div><i class="fas fa-trash" onclick="event.stopPropagation(); deleteChat('${id}')"></i></div></div>`;
+      }).join('');
+    }
+
+    function createNewChat(){
+      if(isIncognito) toggleIncognito(); // exit incognito when starting persistent chat
+      const id = 'chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      chats[id] = { id, title: 'New Chat', messages: [], timestamp: Date.now() };
+      saveChats(); renderChats();
+      loadChat(id);
+      crossfadeNewBackground(); // change background on new chat
+    }
+
+    function loadChat(id){
+      const chat = chats[id] || { messages: [] };
+      // highlight active
+      document.querySelectorAll('.chat-item').forEach(el=>el.classList.remove('active'));
+      const el = document.querySelector(`.chat-item[data-id="${id}"]`);
+      if(el) el.classList.add('active');
+      messagesEl.innerHTML = '';
+      if((chat.messages || []).length===0){
+        showEmpty();
+      } else {
+        chat.messages.forEach(m => addMessageToUI(m.content, m.role, m.time));
+      }
+      document.getElementById('chatSub').textContent = chat.title || 'Conversation';
+      currentChatId = id;
+    }
+
+    function deleteChat(id){
+      if(!confirm('Delete chat?')) return;
+      delete chats[id]; saveChats(); renderChats();
+      // if deleted active, create new
+      loadAnyOrNew();
+    }
+
+    function loadAnyOrNew(){
+      const ids = Object.keys(chats);
+      if(ids.length>0) loadChat(ids[0]);
+      else createNewChat();
+    }
+
+    function showEmpty(){
+      messagesEl.innerHTML = document.getElementById('empty').outerHTML;
+    }
+
+    function addMessageToUI(content, role, time){
+      // remove empty placeholder if present
+      const empty = messagesEl.querySelector('.empty');
+      if(empty) empty.remove();
+
+      const msg = document.createElement('div'); msg.className = 'msg ' + (role === 'user' ? 'user' : 'assistant');
+      const avatar = document.createElement('div'); avatar.className = 'avatar';
+      avatar.innerHTML = `<i class="fas fa-${role==='user'?'user':'robot'}"></i>`;
+      const body = document.createElement('div'); body.style.display = 'flex'; body.style.flexDirection='column';
+      const bubble = document.createElement('div'); bubble.className = 'bubble ' + (role==='user'?'user':'assistant');
+      bubble.innerHTML = formatMsg(content);
+      const tim = document.createElement('div'); tim.className='msg-time'; tim.textContent = time || '';
+      body.appendChild(bubble); body.appendChild(tim);
+      msg.appendChild(avatar); msg.appendChild(body);
+      messagesEl.appendChild(msg);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function formatMsg(text){
+      return escapeHtml(text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    }
+
+    function escapeHtml(unsafe){
+      return String(unsafe).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // input behaviors
+    inputEl.addEventListener('input', function(){ this.style.height='auto'; this.style.height = Math.min(this.scrollHeight, 160)+'px'; });
+    inputEl.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
+
+    sendBtn.addEventListener('click', sendMessage);
+    newChatBtn.addEventListener('click', createNewChat);
+    incBtn.addEventListener('click', toggleIncognito);
+
+    async function sendMessage(){
+      const text = inputEl.value.trim();
+      if(!text || isSending) return;
+      isSending = true;
+      const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      addMessageToUI(text, 'user', time);
+
+      if(isIncognito){
+        tempHistory.push({ role:'user', content:text });
+      } else {
+        if(!chats[currentChatId]) chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
+        chats[currentChatId].messages.push({ role:'user', content:text, time });
+        chats[currentChatId].timestamp = Date.now();
+        saveChats(); renderChats();
+      }
+
+      inputEl.value=''; inputEl.style.height='auto';
+
+      // loading bubble
+      const loadingId = 'loading-' + Date.now();
+      addMessageToUI('...', 'assistant', '');
+      try{
+        const resp = await fetch('/api/chat', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ prompt:text, session_id: currentChatId, is_incognito: isIncognito, history: isIncognito? tempHistory : (chats[currentChatId]?.messages || []) })
+        });
+        const data = await resp.json();
+        // remove last assistant '...' bubble
+        // naive but effective: remove last .msg with assistant and '...' content
+        Array.from(messagesEl.querySelectorAll('.msg')).reverse().some(node=>{
+          const b = node.querySelector('.bubble'); if(node.classList.contains('assistant') && b && (b.textContent.trim()==='...' || b.textContent.trim()=='')){ node.remove(); return true } return false;
         });
 
-        textarea.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
+        if(data.success){
+          addMessageToUI(data.response, 'assistant', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+          if(!isIncognito){
+            chats[currentChatId].messages.push({ role:'assistant', content:data.response, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+            if(data.chat_title){ chats[currentChatId].title = data.chat_title }
+            saveChats(); renderChats();
+          } else {
+            tempHistory.push({ role:'assistant', content:data.response });
+          }
+        } else {
+          addMessageToUI('Error: ' + (data.error || 'Unknown'), 'assistant', '');
+        }
+      }catch(err){
+        // remove loading
+        Array.from(messagesEl.querySelectorAll('.msg')).reverse().some(node=>{
+          const b = node.querySelector('.bubble'); if(node.classList.contains('assistant') && b && (b.textContent.trim()==='...' || b.textContent.trim()=='')){ node.remove(); return true } return false;
         });
+        addMessageToUI('Connection error. Try again.', 'assistant', '');
+        console.error(err);
+      } finally {
+        isSending = false;
+      }
+    }
 
-        document.getElementById('sendBtn').addEventListener('click', sendMessage);
-
-        async function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            if (!message || isSending) return;
-
-            isSending = true;
-            document.getElementById('sendBtn').disabled = true;
-            lastUserPrompt = message;
-
-            const emptyState = document.getElementById('emptyState');
-            if (emptyState) emptyState.remove();
-
-            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            addMessageToUI(message, 'user', time);
-
-            if (isIncognito) {
-                tempIncognitoHistory.push({ role: 'user', content: message });
-            } else {
-                if (!chats[currentChatId]) {
-                    chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
-                }
-                chats[currentChatId].messages.push({ role: 'user', content: message, time });
-            }
-
-            input.value = '';
-            input.style.height = 'auto';
-
-            const loadingId = addLoadingMessage();
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        prompt: message,
-                        session_id: currentChatId,
-                        is_incognito: isIncognito,
-                        history: isIncognito ? tempIncognitoHistory : []
-                    })
-                });
-
-                const data = await response.json();
-                removeMessage(loadingId);
-
-                if (data.success) {
-                    const assistantTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    addMessageToUI(data.response, 'assistant', assistantTime);
-
-                    if (isIncognito) {
-                        tempIncognitoHistory.push({ role: 'assistant', content: data.response });
-                    } else {
-                        chats[currentChatId].messages.push({ role: 'assistant', content: data.response, time: assistantTime });
-                        if (data.chat_title) {
-                            chats[currentChatId].title = data.chat_title;
-                            document.getElementById('chatSubtitle').textContent = data.chat_title;
-                        }
-                        chats[currentChatId].timestamp = Date.now();
-                        saveChats();
-                        renderChatsList();
-                    }
-                } else {
-                    addMessageToUI('Sorry, an error occurred: ' + (data.error || 'Unknown error'), 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-                }
-            } catch (error) {
-                removeMessage(loadingId);
-                addMessageToUI('Connection error. Please try again.', 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-                console.error('Error:', error);
-            } finally {
-                isSending = false;
-                document.getElementById('sendBtn').disabled = false;
-                input.focus();
-            }
+    function toggleIncognito(){
+      isIncognito = !isIncognito;
+      document.getElementById('incText').textContent = isIncognito ? ' Exit' : ' Incognito';
+      if(isIncognito){
+        tempHistory = [];
+        document.getElementById('chatSub').textContent = 'Temporary chat (not saved)';
+      } else {
+        document.getElementById('chatSub').textContent = chats[currentChatId]?.title || 'Conversation';
+        if(tempHistory.length>0){
+          // when exiting, create a new persistent chat
+          const id = 'chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+          chats[id] = { id, title: 'New Chat', messages: [] };
+          tempHistory.forEach(m=> chats[id].messages.push({ role:m.role, content:m.content, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) }));
+          saveChats(); renderChats(); loadChat(id);
         }
+      }
+    }
 
-        function addMessageToUI(content, role, time) {
-            const wrapper = document.getElementById('messagesWrapper');
-            // make sure empty state removed
-            const empty = document.getElementById('emptyState');
-            if (empty) empty.remove();
+    // initial load
+    window.addEventListener('load', ()=>{
+      // initial background
+      crossfadeNewBackground();
+      initParticles();
+      drawParticles();
+      initParticles(); // prepare particles count
+      loadChats();
+      // ensure at least one chat
+      if(Object.keys(chats).length===0) createNewChat();
+      else loadAnyOrNew();
 
-            const messageDiv = document.createElement('div');
-            const id = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-            messageDiv.id = id;
-            messageDiv.className = `message ${role}`;
+      // subtle entrance animation
+      document.querySelectorAll('.chat-panel, .sidebar').forEach((el,i)=>{ el.style.opacity=0; el.style.transform='translateY(8px)'; setTimeout(()=>{ el.style.transition='all 520ms cubic-bezier(.2,.9,.2,1)'; el.style.opacity=1; el.style.transform='translateY(0)'; }, 150*i); });
 
-            const controlsHtml = role === 'assistant' ? `
-                <div style="display:flex;flex-direction:column; gap:6px; margin-left:8px;">
-                    <button class="msg-btn" onclick="copyMessage('${id}')" title="Copy message" style="border-radius:8px;padding:6px;border:1px solid var(--border); background:transparent; color:var(--text-secondary);"><i class="fas fa-copy"></i></button>
-                </div>
-            ` : '';
+      // a fast preload for orb visual (no-op)
+      setTimeout(()=>document.querySelector('.orb').style.filter='none', 900);
+    });
 
-            messageDiv.innerHTML = `
-                <div class="message-avatar" aria-hidden="true">
-                    <i class="fas fa-${role === 'user' ? 'user' : 'robot'}"></i>
-                </div>
-                <div style="display:flex;flex-direction:column; gap:6px; align-items:flex-start;">
-                    <div class="message-bubble">${formatMessage(content)}</div>
-                    <div class="message-time">${time}</div>
-                </div>
-            `;
+    // small helper functions exposed to inline listeners (loadChat referenced earlier)
+    window.loadChat = loadChat;
+    window.deleteChat = deleteChat;
+    window.createNewChat = createNewChat;
 
-            wrapper.appendChild(messageDiv);
-            wrapper.scrollTop = wrapper.scrollHeight;
-        }
+    // resize & particle upkeep
+    function initParticles(){ resizeCanvas(); particles=[]; const count = Math.max(8, Math.floor((canvas.width*canvas.height)/180000)); for(let i=0;i<count;i++){ particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 80 + Math.random()*240, a:0.02+Math.random()*0.06, vx:(Math.random()-0.5)*0.09, vy:(Math.random()-0.5)*0.09, hue: 0 + Math.random()*360 }); } }
+    // circular redraw (use previous drawParticles call signature)
+    function drawParticles(){
+      if(!ctx) return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(const p of particles){
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < -p.r) p.x = canvas.width + p.r;
+        if(p.x > canvas.width + p.r) p.x = -p.r;
+        if(p.y < -p.r) p.y = canvas.height + p.r;
+        if(p.y > canvas.height + p.r) p.y = -p.r;
+        const g = ctx.createRadialGradient(p.x, p.y, p.r*0.05, p.x, p.y, p.r);
+        g.addColorStop(0, `hsla(${p.hue},85%,60%,${0.06})`);
+        g.addColorStop(0.5, `hsla(${(p.hue+10)%360},80%,45%,${0.02})`);
+        g.addColorStop(1, `hsla(${(p.hue+20)%360},70%,30%,0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      }
+      requestAnimationFrame(drawParticles);
+    }
 
-        function formatMessage(text) {
-            // basic markdown-like formatting
-            return escapeHtml(text)
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code>$1</code>')
-                .replace(/\n/g, '<br>');
-        }
-
-        function addLoadingMessage() {
-            const wrapper = document.getElementById('messagesWrapper');
-            const id = 'loading-' + Date.now();
-            const messageDiv = document.createElement('div');
-            messageDiv.id = id;
-            messageDiv.className = 'message assistant';
-            messageDiv.innerHTML = `
-                <div class="message-avatar" aria-hidden="true"><i class="fas fa-robot"></i></div>
-                <div style="display:flex;flex-direction:column; gap:6px;">
-                    <div class="message-bubble">
-                        <div class="typing-indicator" style="display:inline-flex; gap:6px;">
-                            <span style="width:8px;height:8px;border-radius:50%;background:var(--text-secondary);display:inline-block; animation: typing 1.2s infinite;"></span>
-                            <span style="width:8px;height:8px;border-radius:50%;background:var(--text-secondary);display:inline-block; animation: typing 1.2s 0.15s infinite;"></span>
-                            <span style="width:8px;height:8px;border-radius:50%;background:var(--text-secondary);display:inline-block; animation: typing 1.2s 0.3s infinite;"></span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            wrapper.appendChild(messageDiv);
-            wrapper.scrollTop = wrapper.scrollHeight;
-            return id;
-        }
-
-        function removeMessage(id) {
-            const el = document.getElementById(id);
-            if (el) el.remove();
-        }
-
-        function copyMessage(id) {
-            const el = document.querySelector(`#${id} .message-bubble`);
-            if (!el) return;
-            const temp = document.createElement('textarea');
-            temp.value = el.innerText;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-            alert('Copied to clipboard');
-        }
-
-        function escapeHtml(unsafe) {
-            return String(unsafe)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        // regenerate placeholder (kept minimal)
-        async function regenerateMessage(id) {
-            if (!lastUserPrompt) return alert('No previous user message to regenerate from.');
-            // remove message id then re-request
-            const el = document.getElementById(id);
-            if (el) el.remove();
-            const loadingId = addLoadingMessage();
-            try {
-                const resp = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        prompt: lastUserPrompt,
-                        session_id: currentChatId,
-                        is_incognito: isIncognito,
-                        history: isIncognito ? tempIncognitoHistory : []
-                    })
-                });
-                const data = await resp.json();
-                removeMessage(loadingId);
-                if (data.success) addMessageToUI(data.response, 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-                else addMessageToUI('Regenerate failed: ' + (data.error || 'unknown'), 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-            } catch (err) {
-                removeMessage(loadingId);
-                addMessageToUI('Connection error during regenerate.', 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-                console.error(err);
-            }
-        }
-
-        // Init
-        window.addEventListener('load', () => {
-            loadChats();
-            document.getElementById('messageInput').focus();
-            // ensure initial chat exists
-            if (!chats[currentChatId]) {
-                chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
-            }
-        });
-
-        // basic typing animation keyframes (inlined to avoid missing css)
-        (function addTypingKeyframes(){
-            const s = document.createElement('style');
-            s.innerHTML = `@keyframes typing { 0%,60%,100% { transform: translateY(0); opacity:0.6 } 30% { transform: translateY(-6px); opacity:1 } }`;
-            document.head.appendChild(s);
-        })();
-    </script>
+    // gracefully stop if page hidden to save CPU (nice for mobile)
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.hidden){
+        // pause animation by clearing events - let requestAnimationFrame idle naturally
+      }else{
+        resizeCanvas();
+      }
+    });
+  </script>
 </body>
 </html>
