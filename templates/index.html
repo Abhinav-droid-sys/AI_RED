@@ -1,296 +1,576 @@
-<!DOCTYPE html>
+<!-- Full file: drop into templates/index.html (complete, replaces broken version) -->
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>RED — Your intelligent AI companion</title>
-  <meta name="description" content="RED — intelligent, fast AI assistant for students, developers and creators. Chat instantly." />
+  <meta name="description" content="RED — intelligent, fast AI assistant for students, developers and creators. Chat instantly, keep or remove history, and control privacy." />
+  <meta name="theme-color" content="#0A0A0B" />
 
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23FF3B30'/%3E%3Ctext x='50%25' y='55%25' font-size='18' text-anchor='middle' font-family='Inter, Arial, sans-serif' fill='white' font-weight='700'%3ER%3C/text%3E%3C/svg%3E" />
 
-  <!-- Fonts & Icons -->
+  <!-- Fonts & icons -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 
   <style>
-    :root {
-      --primary: #FF3B30;
-      --primary-light: #FF6B6B;
-      --bg-dark: #0A0A0B;
-      --card-bg: rgba(18,18,20,0.9);
-      --glass-bg: rgba(255,255,255,0.04);
+    /* ---------------- Base (from your original theme) ---------------- */
+    :root{
+      --primary:#FF3B30;
+      --primary-2:#FF6B6B;
+      --bg:#060607;
+      --card:#0f0f12;
+      --glass: rgba(255,255,255,0.04);
+      --muted:#9b9ba6;
+      --success:#34C759;
       --glass-border: rgba(255,255,255,0.06);
-      --text-main: #FFFFFF;
-      --text-muted: #999;
-      --border-color: #26262C;
+      --toolbar-width: 64px;
+      --edge-tab-width: 14px;
+      --anim-duration: 1000ms; /* 1s */
     }
-    * { box-sizing: border-box; margin:0; padding:0; }
-    html, body { height: 100%; }
-    body { 
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-main);
-      overflow: hidden;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:var(--bg);
+      color:#fff;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow:hidden;
+      padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
 
-    /* ---------------- Sidebar toolbar ---------------- */
-    #sideToolbar {
-      position: fixed;
-      top: 0; left: 0;
-      height: 100vh;
-      width: 64px;
-      background: var(--card-bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 8px 0;
-      gap: 12px;
-      transition: transform 1s ease, opacity 1s ease;
-      z-index: 1000;
+    /* ---------------- Background layers (kept) ---------------- */
+    .bg-wrap{
+      position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
     }
-    #sideToolbar.hidden {
-      transform: translateX(-100%);
+    .bg-layer{
+      position:absolute; inset:-10% ; background-position:center center; background-size:cover;
+      transition: opacity 900ms cubic-bezier(.2,.9,.2,1), transform 900ms ease;
+      filter: blur(28px) brightness(0.36) saturate(1.08);
+      opacity:0; transform: scale(1.04);
+    }
+    .bg-layer.visible{ opacity:1; transform:scale(1); }
+    .bg-hue{
+      position:absolute; inset:0; background: radial-gradient(circle at 30% 20%, rgba(255,59,48,0.06), rgba(10,10,11,0.8));
+      mix-blend-mode: overlay; pointer-events:none;
+    }
+
+    /* particles canvas */
+    #particlesCanvas{ position: absolute; inset:0; z-index:0; pointer-events:none; }
+
+    /* ---------------- Layout grid (kept) ---------------- */
+    .app {
+      position:relative; z-index:2;
+      max-width:1400px; margin:18px auto; height: calc(100vh - 36px);
+      display:grid; grid-template-columns: 320px 1fr; gap:18px; padding:14px;
+      transition: margin-left var(--anim-duration) ease;
+    }
+
+    /* ---------------- Sidebar (glass) original style, now can be toggled ---------------- */
+    .sidebar{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:16px; border:1px solid var(--glass-border);
+      padding:18px; display:flex; flex-direction:column; gap:12px; backdrop-filter: blur(10px) saturate(1.1);
+      min-height:0; overflow:auto; transition: opacity var(--anim-duration) ease, transform var(--anim-duration) ease;
+    }
+    .sidebar.hidden {
       opacity: 0;
+      transform: translateX(-18px);
+      pointer-events: none;
     }
-    .toolbar-btn {
-      background: var(--primary);
-      border: none;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
+    .logo {display:flex; gap:12px; align-items:center}
+    .logo-badge{
+      width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;box-shadow:0 10px 30px rgba(255,59,48,0.12);
     }
-    .toolbar-btn:hover {
-      background: var(--primary-light);
+    .brand { font-weight:800; font-size:20px; letter-spacing:-0.4px; background: linear-gradient(135deg,var(--primary),var(--primary-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .tag { color:var(--muted); font-size:12px; margin-top:2px; }
+
+    .new-chat-btn{
+      display:flex; align-items:center; gap:10px; padding:12px;border-radius:12px;border:none; cursor:pointer;
+      background: linear-gradient(90deg, rgba(255,59,48,0.12), rgba(255,107,107,0.06)); color:var(--primary);
+      font-weight:700; justify-content:center;
+      transition: transform 160ms ease, box-shadow 160ms ease;
     }
-    /* when expanded toolbar (optional icons + labels) */
-    .toolbar-label {
-      margin-top: 4px;
-      font-size: 10px;
-      color: var(--text-muted);
-      text-align: center;
-      line-height: 1.2;
+    .new-chat-btn:active{ transform:translateY(2px) }
+
+    .chats-list{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+    .chat-item{ padding:10px 12px; border-radius:10px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; gap:8px; cursor:pointer; border:1px solid transparent;}
+    .chat-item:hover{ background: rgba(255,255,255,0.02); color:#fff; border-color:var(--glass-border); }
+    .chat-item.active{ border-color: rgba(255,59,48,0.18); background: rgba(255,59,48,0.03); color:#fff; }
+
+    /* ---------------- Chat panel ---------------- */
+    .chat-panel{
+      display:flex; flex-direction:column; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:16px; border:1px solid var(--glass-border); overflow:hidden; backdrop-filter: blur(12px) saturate(1.08);
+      transition: filter var(--anim-duration) ease, opacity var(--anim-duration) ease;
     }
 
-    /* ---------------- Main layout ---------------- */
-    .wrapper {
-      display: flex;
-      height: 100vh;
-      margin-left: 64px; /* leave space for toolbar */
-      transition: margin-left 1s ease;
+    .chat-header{
+      display:flex; align-items:center; justify-content:space-between; padding:18px; border-bottom:1px solid rgba(255,255,255,0.02);
     }
-    .wrapper.full {
-      margin-left: 0px;
-    }
+    .header-left h1{ font-size:20px; margin:0; font-weight:800; background:linear-gradient(135deg,var(--primary),var(--primary-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .subtitle { color:var(--muted); font-size:13px; margin-top:4px; }
 
-    .chat-panel {
-      flex:1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      background: var(--card-bg);
-    }
+    .status { display:flex; gap:10px; align-items:center; }
+    .status .badge{ padding:6px 10px; border-radius:18px; font-weight:700; font-size:13px; display:flex; gap:8px; align-items:center; background: rgba(52,199,89,0.06); color:var(--success); border:1px solid rgba(52,199,89,0.12); }
 
-    .chat-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border-color);
-      backdrop-filter: blur(12px) saturate(1.1);
-      background: var(--glass-bg);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .chat-title {
-      font-size: 20px;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .chat-sub {
-      color: var(--text-muted);
-      font-size: 13px;
-      margin-top: 4px;
-    }
-
+    /* messages area with fade-in class for messages */
     .messages {
-      flex:1;
-      overflow-y: auto;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      flex:1; overflow:auto; padding:20px; display:flex; flex-direction:column; gap:16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
     }
-    .message {
+    .empty{ display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; color:var(--muted); text-align:center; padding:12px; }
+
+    .msg { display:flex; gap:12px; align-items:flex-end; max-width:100% }
+    .msg.user{ flex-direction:row-reverse; }
+    .avatar{ width:44px;height:44px;border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); }
+    .bubble{ padding:12px 16px; border-radius:14px; line-height:1.45; font-size:15px; max-width:72%; word-wrap:break-word; opacity:0; transform: translateY(8px); transition: opacity 220ms ease, transform 260ms ease; }
+    .bubble.show { opacity:1; transform: translateY(0); }
+    .bubble.assistant{ background: rgba(255,255,255,0.02); border:1px solid var(--glass-border); }
+    .bubble.user{ background:linear-gradient(135deg,var(--primary),var(--primary-2)); color:white; box-shadow:0 10px 30px rgba(255,59,48,0.08); }
+
+    .msg-time { font-size:12px; color:var(--muted); margin-top:6px; }
+
+    /* input */
+    .input-area{
+      padding:14px; border-top:1px solid rgba(255,255,255,0.02); background:linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
+    }
+    .input-row{
+      display:flex; gap:12px; align-items:flex-end;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px; padding:10px; border:1px solid var(--glass-border);
+    }
+    #messageInput{
+      flex:1; resize:none; background:transparent; color:var(--text); border:none; outline:none; font-size:15px;
+      padding:12px 10px 8px 10px; line-height:1.35; min-height:64px; max-height:160px; padding-top:16px;
+    }
+    .send {
+      width:52px;height:52px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--primary),var(--primary-2));
+      display:flex;align-items:center;justify-content:center;color:white;font-size:18px; cursor:pointer;
+      box-shadow:0 10px 30px rgba(255,59,48,0.12);
+    }
+
+    /* ---------------- Left edge tab (when sidebar hidden) ---------------- */
+    .edge-tab {
+      position: fixed;
+      left: 0;
+      top: calc(50% - 28px);
+      width: var(--edge-tab-width);
+      height: 56px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border-radius: 0 8px 8px 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index: 1100;
+      cursor: pointer;
+      color: var(--muted);
+      transition: opacity var(--anim-duration) ease, transform var(--anim-duration) ease;
+    }
+    .edge-tab.hidden { opacity: 0; transform: translateX(-8px); pointer-events: none; }
+
+    /* ---------------- Incognito overlay / styles ---------------- */
+    body.incognito .chat-panel {
+      filter: grayscale(85%);
+      opacity: 0.92;
+    }
+    body.incognito .sidebar {
       opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 0.25s ease, transform 0.25s ease;
-      max-width: 75%;
-      word-wrap: break-word;
-      padding: 14px 16px;
-      border-radius: 14px;
-      font-size: 15px;
-      line-height: 1.4;
-    }
-    .message.user {
-      align-self: flex-end;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      color: white;
-      box-shadow: 0 8px 24px rgba(255,59,48,0.12);
-    }
-    .message.assistant {
-      align-self: flex-start;
-      background: var(--card-bg);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-    }
-    .message.show {
-      opacity: 1;
-      transform: translateY(0);
+      transform: translateX(-18px);
+      pointer-events: none;
     }
 
-    .input-area {
-      padding: 14px;
-      border-top: 1px solid var(--border-color);
-      backdrop-filter: blur(12px) saturate(1.1);
-      background: var(--glass-bg);
-      display:flex; gap:10px;
-    }
-    #messageInput {
-      flex:1;
-      padding: 14px 12px 8px 12px;
-      background: transparent;
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      resize: none;
-      min-height: 64px;
-      max-height: 160px;
-      font-size: 15px;
-      line-height: 1.4;
-    }
-    #sendBtn {
-      width: 50px; height: 50px;
-      border: none; border-radius: 10px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
-      color: white; cursor: pointer;
-      display: flex; align-items:center; justify-content:center;
-      font-size: 18px;
+    /* responsive */
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; height:100vh; margin:0; padding:10px; gap:10px; }
+      .sidebar{ order:2; display:flex; flex-direction:row; gap:10px; overflow:auto; align-items:center; padding:10px; }
+      .chats-list{ display:none }
+      .chat-panel{ order:1; height: calc(100vh - 120px) }
+      body{ overflow:hidden }
     }
 
-    /* for incognito / other overlays (if needed) */
+    button:focus, textarea:focus, a:focus { outline: 3px solid rgba(255,59,48,0.14); outline-offset:2px; border-radius:8px; }
   </style>
 </head>
 <body>
-  <!-- Sidebar toolbar -->
-  <div id="sideToolbar" class="visible">
-    <button id="sidebarToggleBtn" class="toolbar-btn" title="Hide sidebar">
-      <i class="fas fa-bars"></i>
-    </button>
-    <button id="newChatBtn_tool" class="toolbar-btn" title="New chat">
-      <i class="fas fa-plus"></i>
-    </button>
-    <button id="clearChatsBtn" class="toolbar-btn" title="Clear all chats">
-      <i class="fas fa-trash"></i>
-    </button>
-    <!-- You could add history list or other toolbar-icons here -->
+  <!-- BACKGROUND LAYERS (kept from your base) -->
+  <div class="bg-wrap" aria-hidden="true">
+    <div id="bgLayerA" class="bg-layer"></div>
+    <div id="bgLayerB" class="bg-layer"></div>
+    <div class="bg-hue"></div>
+    <canvas id="particlesCanvas"></canvas>
   </div>
 
-  <!-- Main wrapper (chat panel) -->
-  <div class="wrapper" id="mainWrapper">
-    <div class="chat-panel">
-      <header class="chat-header">
+  <!-- Edge tab (visible when sidebar hidden) -->
+  <div id="edgeTab" class="edge-tab hidden" title="Show sidebar">
+    <i class="fas fa-chevron-right"></i>
+  </div>
+
+  <div class="app" role="main" aria-labelledby="appTitle" id="appRoot">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" aria-label="Chat sidebar" id="sidebar">
+      <div class="logo">
+        <div class="logo-badge"><i class="fas fa-fire" aria-hidden="true"></i></div>
         <div>
-          <div class="chat-title">RED</div>
-          <div class="chat-sub" id="chatSubtitle">Your intelligent AI companion</div>
+          <div class="brand" id="appTitle">RED</div>
+          <div class="tag">Fast • Focused • Friendly</div>
         </div>
-        <!-- (You can keep status / incognito / other controls here) -->
+      </div>
+
+      <button class="new-chat-btn" id="newChatBtn" title="Start a new chat">
+        <i class="fas fa-plus"></i> <span>New Chat</span>
+      </button>
+
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div style="flex:1;">
+          <div style="font-size:12px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:6px;">History</div>
+        </div>
+        <button id="clearAllBtn" style="background:transparent;border:1px solid rgba(255,255,255,0.03); color:var(--muted); padding:6px 8px;border-radius:8px;cursor:pointer;" title="Clear all chats">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+
+      <div class="chats-list" id="chatsList" role="list" aria-live="polite"></div>
+
+      <div style="margin-top:auto;font-size:13px;color:var(--muted)">
+        <div style="margin-bottom:8px;font-weight:700">Note</div>
+        <div>Messages are saved locally by default. Use Incognito to keep chats temporary.</div>
+      </div>
+    </aside>
+
+    <!-- CHAT PANEL -->
+    <section class="chat-panel" aria-label="Chat panel">
+      <header class="chat-header" role="banner">
+        <div class="header-left">
+          <h1>RED</h1>
+          <div class="subtitle" id="chatSub">Your intelligent AI companion</div>
+        </div>
+        <div class="status" role="status">
+          <div class="badge" id="serviceStatus"><span style="width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--success)"></span> Online</div>
+          <button id="incognitoBtn" class="new-chat-btn" style="padding:8px 10px;font-weight:600; margin-left:12px;"> <i class="fas fa-user-secret"></i> <span id="incText"> Incognito</span></button>
+        </div>
       </header>
 
-      <div class="messages" id="messages">
-        <!-- placeholder when no message -->
-        <div class="empty-state" style="color: var(--text-muted); text-align:center; margin-top:40px;">
-          No messages yet — start the conversation.
+      <div class="messages" id="messages" tabindex="0" aria-live="polite">
+        <div class="empty" id="empty">
+          <div style="width:88px;height:88px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--primary-2));display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 30px 80px rgba(255,59,48,0.12);"><i class="fas fa-fire"></i></div>
+          <div style="font-weight:700;font-size:18px">Welcome to RED</div>
+          <div class="muted">Ask anything — code, homework, creative ideas.</div>
         </div>
       </div>
 
-      <div class="input-area">
-        <textarea id="messageInput" placeholder="Ask me anything..." autocomplete="off"></textarea>
-        <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
-      </div>
-    </div>
+      <form class="input-area" onsubmit="(e=>{e.preventDefault(); sendMessage();})(event)" aria-label="Message input form">
+        <div class="input-row" role="group">
+          <textarea id="messageInput" rows="1" autocomplete="off" placeholder="Ask me anything — e.g. 'Explain quicksort in 2 minutes'"></textarea>
+          <button id="sendBtn" class="send" type="button" title="Send"><i class="fas fa-paper-plane"></i></button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; color:var(--muted); font-size:13px">
+          <div>RED • Built with focus</div>
+          <div style="display:flex; gap:12px;">
+            <a href="/privacy" style="color:var(--muted); text-decoration:none">Privacy</a>
+            <a href="mailto:contact@redai.live" style="color:var(--muted); text-decoration:none">Contact</a>
+          </div>
+        </div>
+      </form>
+    </section>
   </div>
 
+  <!-- small snackbar for actions -->
+  <div id="snackbar" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:white;padding:10px 14px;border-radius:8px;opacity:0;transition:opacity 300ms ease;z-index:1200;">Action</div>
+
   <script>
-    // Sidebar toggle logic
-    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-    const sideToolbar = document.getElementById('sideToolbar');
-    const mainWrapper = document.getElementById('mainWrapper');
+    // =================== Variables & state (keeps your previous logic) ===================
+    let currentChatId = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2,9);
+    let chats = {};
+    let isIncognito = false;
+    let tempHistory = [];
+    let isSending = false;
+    const bgA = document.getElementById('bgLayerA');
+    const bgB = document.getElementById('bgLayerB');
+    let activeBg = 'A';
+    const queries = ['technology,abstract','cyberpunk,city','neon,gradient','red,technology','futuristic,ai','computer,code','digital,art','space,nebula'];
 
-    sidebarToggleBtn.addEventListener('click', () => {
-      sideToolbar.classList.toggle('hidden');
-      mainWrapper.classList.toggle('full');
-    });
-
-    // Chat storage & clear-all logic
-    const clearChatsBtn = document.getElementById('clearChatsBtn');
-
-    clearChatsBtn.addEventListener('click', () => {
-      if (!confirm("Clear all chats? This cannot be undone.")) return;
-      try { localStorage.removeItem('red_chats'); } catch(e){}
-      // Clear UI messages & reset
-      document.getElementById('messages').innerHTML = '';
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.style.color = 'var(--text-muted)';
-      empty.style.textAlign = 'center';
-      empty.style.marginTop = '40px';
-      empty.textContent = 'No messages yet — start the conversation.';
-      document.getElementById('messages').append(empty);
-      // Optionally reload or reset app state — depends on your JS logic
-    });
-
-    // Example send message logic (you already have real backend calling logic)
+    // references to elements
+    const sidebar = document.getElementById('sidebar');
+    const edgeTab = document.getElementById('edgeTab');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const newChatBtnTool = document.getElementById('newChatBtn_tool');
+    const incBtn = document.getElementById('incognitoBtn');
+    const incText = document.getElementById('incText');
+    const chatsListEl = document.getElementById('chatsList');
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
-    const messageInput = document.getElementById('messageInput');
-    const messagesDiv = document.getElementById('messages');
+    const snackbar = document.getElementById('snackbar');
+    const appRoot = document.getElementById('appRoot');
+    const appContainer = document.querySelector('.app');
 
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
+    // =================== Utility functions ===================
+    function showSnackbar(text, ms=2200){
+      snackbar.textContent = text;
+      snackbar.style.opacity = '1';
+      setTimeout(()=> snackbar.style.opacity = '0', ms);
+    }
+
+    function randQuery(){ return queries[Math.floor(Math.random()*queries.length)]; }
+    function lowResUrl(q, seed){ return `https://source.unsplash.com/800x450/?${encodeURIComponent(q)}&sig=${seed}`; }
+    function hiResUrl(q, seed){ return `https://source.unsplash.com/1600x900/?${encodeURIComponent(q)}&sig=${seed}`; }
+    function fallbackHi(seed){ return `https://picsum.photos/1600/900?random=${seed}`; }
+
+    // =================== Background logic (kept) ===================
+    function setBgImage(url, layer){
+      const el = (layer === 'A') ? bgA : bgB;
+      el.style.backgroundImage = `url("${url}")`;
+      const img = new Image();
+      img.onload = () => el.classList.add('visible');
+      img.onerror = () => { el.style.backgroundImage = `url("${fallbackHi(Date.now())}")`; el.classList.add('visible'); };
+      img.src = url;
+    }
+    async function crossfadeNewBackground(){
+      const q = randQuery(); const seed = Date.now();
+      const low = lowResUrl(q, seed); const high = hiResUrl(q, seed);
+      const target = (activeBg === 'A') ? 'B' : 'A';
+      const layerEl = target === 'A' ? bgA : bgB;
+      layerEl.classList.remove('visible');
+      setBgImage(low, target);
+      const hiImg = new Image();
+      hiImg.onload = () => { layerEl.style.backgroundImage = `url("${high}")`; setTimeout(()=> layerEl.classList.add('visible'), 80); };
+      hiImg.onerror = () => { layerEl.style.backgroundImage = `url("${fallbackHi(seed)}")`; setTimeout(()=> layerEl.classList.add('visible'), 80); };
+      hiImg.src = high;
+      activeBg = target;
+      const other = target === 'A' ? bgB : bgA; other.classList.remove('visible');
+    }
+
+    // =================== Particles (kept) ===================
+    const canvas = document.getElementById('particlesCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    function initParticles(){ particles = []; const count = Math.max(12, Math.floor((canvas.width*canvas.height)/120000)); for(let i=0;i<count;i++){ particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 80 + Math.random()*220, a: 0.02 + Math.random()*0.06, vx: (Math.random()-0.5)*0.05, vy: (Math.random()-0.5)*0.05, hue: 340 + Math.random()*20 }); } }
+    function drawParticles(){ ctx.clearRect(0,0,canvas.width,canvas.height); for(const p of particles){ p.x += p.vx; p.y += p.vy; if(p.x < -p.r) p.x = canvas.width + p.r; if(p.x > canvas.width + p.r) p.x = -p.r; if(p.y < -p.r) p.y = canvas.height + p.r; if(p.y > canvas.height + p.r) p.y = -p.r; const grad = ctx.createRadialGradient(p.x, p.y, p.r*0.1, p.x, p.y, p.r); grad.addColorStop(0, `hsla(${p.hue}, 85%, 60%, ${0.08})`); grad.addColorStop(0.45, `hsla(${p.hue - 10}, 80%, 45%, ${0.02})`); grad.addColorStop(1, `hsla(${p.hue - 20}, 70%, 30%, 0)`); ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); } requestAnimationFrame(drawParticles); }
+
+    // =================== Chat storage & render logic (kept + adjusted) ===================
+    function saveChats(){ try{ localStorage.setItem('red_chats', JSON.stringify(chats)); }catch(e){console.warn(e)} }
+    function loadChats(){ try{ const s = localStorage.getItem('red_chats'); if(s) chats = JSON.parse(s); }catch(e){console.warn(e)} renderChats(); }
+    function renderChats(){
+      const ids = Object.keys(chats).sort((a,b)=> (chats[b].timestamp||0)-(chats[a].timestamp||0));
+      if(ids.length===0){ chatsListEl.innerHTML = '<div class="muted">No chats yet</div>'; return; }
+      chatsListEl.innerHTML = ids.map(id=>{
+        return `<div role="listitem" class="chat-item" data-id="${id}" onclick="loadChat('${id}')"><div>${escapeHtml(chats[id].title||'New Chat')}</div><div><i class="fas fa-trash" onclick="event.stopPropagation(); deleteChat('${id}')"></i></div></div>`;
+      }).join('');
+    }
+
+    function createNewChat(){
+      if(isIncognito) toggleIncognito(); // exit incognito when starting persistent chat
+      const id = 'chat_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      chats[id] = { id, title: 'New Chat', messages: [], timestamp: Date.now() };
+      saveChats(); renderChats();
+      loadChat(id);
+      crossfadeNewBackground();
+      showSnackbar('New chat created');
+    }
+
+    function loadChat(id){
+      const chat = chats[id] || { messages: [] };
+      document.querySelectorAll('.chat-item').forEach(el=>el.classList.remove('active'));
+      const el = document.querySelector(`.chat-item[data-id="${id}"]`);
+      if(el) el.classList.add('active');
+      messagesEl.innerHTML = '';
+      if((chat.messages || []).length===0) showEmpty();
+      else chat.messages.forEach(m => addMessageToUI(m.content, m.role, m.time));
+      document.getElementById('chatSub').textContent = chat.title || 'Conversation';
+      currentChatId = id;
+    }
+
+    function deleteChat(id){
+      if(!confirm('Delete chat?')) return;
+      // animation: fade out the chat item if present, then remove
+      const item = document.querySelector(`.chat-item[data-id="${id}"]`);
+      if(item){
+        item.style.transition = 'opacity 400ms ease, transform 400ms ease';
+        item.style.opacity = '0'; item.style.transform = 'translateX(-8px)';
+        setTimeout(()=> {
+          delete chats[id]; saveChats(); renderChats();
+          loadAnyOrNew();
+        }, 420);
+      } else {
+        delete chats[id]; saveChats(); renderChats(); loadAnyOrNew();
       }
+    }
+
+    function loadAnyOrNew(){
+      const ids = Object.keys(chats);
+      if(ids.length>0) loadChat(ids[0]);
+      else createNewChat();
+    }
+
+    function showEmpty(){
+      messagesEl.innerHTML = document.getElementById('empty').outerHTML;
+    }
+
+    function addMessageToUI(content, role, time){
+      const empty = messagesEl.querySelector('.empty');
+      if(empty) empty.remove();
+      const msg = document.createElement('div'); msg.className = 'msg ' + (role === 'user' ? 'user' : 'assistant');
+      const avatar = document.createElement('div'); avatar.className = 'avatar';
+      avatar.innerHTML = `<i class="fas fa-${role==='user'?'user':'robot'}"></i>`;
+      const body = document.createElement('div'); body.style.display = 'flex'; body.style.flexDirection='column';
+      const bubble = document.createElement('div'); bubble.className = 'bubble ' + (role==='user'?'user':'assistant');
+      bubble.innerHTML = formatMsg(content);
+      const tim = document.createElement('div'); tim.className='msg-time'; tim.textContent = time || '';
+      body.appendChild(bubble); body.appendChild(tim);
+      msg.appendChild(avatar); msg.appendChild(body);
+      messagesEl.appendChild(msg);
+      // fade-in the bubble
+      setTimeout(()=> bubble.classList.add('show'), 40);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function formatMsg(text){ return escapeHtml(text).replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>'); }
+    function escapeHtml(unsafe){ return String(unsafe).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    // input behavior
+    inputEl.addEventListener('input', function(){ this.style.height='auto'; this.style.height = Math.min(this.scrollHeight, 160)+'px'; });
+    inputEl.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } });
+    sendBtn.addEventListener('click', sendMessage);
+    newChatBtn.addEventListener('click', createNewChat);
+    // also hook toolbar new chat if present (some builds)
+    try{ document.getElementById('newChatBtn_tool').addEventListener('click', createNewChat); }catch(e){}
+
+    // =================== Send message (kept) ===================
+    async function sendMessage(){
+      const text = inputEl.value.trim();
+      if(!text || isSending) return;
+      isSending = true;
+      const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      addMessageToUI(text, 'user', time);
+
+      if(isIncognito){
+        tempHistory.push({ role:'user', content:text });
+      } else {
+        if(!chats[currentChatId]) chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
+        chats[currentChatId].messages.push({ role:'user', content:text, time });
+        chats[currentChatId].timestamp = Date.now();
+        saveChats(); renderChats();
+      }
+
+      inputEl.value=''; inputEl.style.height='auto';
+      const loadingId = 'loading-' + Date.now();
+      addMessageToUI('...', 'assistant', '');
+
+      try{
+        const resp = await fetch('/api/chat', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prompt:text, session_id: currentChatId, is_incognito: isIncognito, history: isIncognito? tempHistory : (chats[currentChatId]?.messages || []) }) });
+        const data = await resp.json();
+        // remove last assistant '...' bubble (naive but effective)
+        Array.from(messagesEl.querySelectorAll('.msg')).reverse().some(node=>{ const b = node.querySelector('.bubble'); if(node.classList.contains('assistant') && b && (b.textContent.trim()==='...' || b.textContent.trim()=='')){ node.remove(); return true } return false; });
+        if(data.success){
+          addMessageToUI(data.response, 'assistant', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+          if(!isIncognito){
+            chats[currentChatId].messages.push({ role:'assistant', content:data.response, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
+            if(data.chat_title){ chats[currentChatId].title = data.chat_title }
+            saveChats(); renderChats();
+          } else {
+            tempHistory.push({ role:'assistant', content:data.response });
+          }
+        } else {
+          addMessageToUI('Error: ' + (data.error || 'Unknown'), 'assistant', '');
+        }
+      }catch(err){
+        Array.from(messagesEl.querySelectorAll('.msg')).reverse().some(node=>{ const b = node.querySelector('.bubble'); if(node.classList.contains('assistant') && b && (b.textContent.trim()==='...' || b.textContent.trim()=='')){ node.remove(); return true } return false; });
+        addMessageToUI('Connection error. Try again.', 'assistant', '');
+        console.error(err);
+      } finally { isSending = false; }
+    }
+
+    // =================== Incognito behavior (restored correctly) ===================
+    let lastNonIncognitoChat = null;
+    function toggleIncognito(){
+      isIncognito = !isIncognito;
+      incText.textContent = isIncognito ? ' Exit' : ' Incognito';
+      if(isIncognito){
+        // store last persistent chat to restore later
+        lastNonIncognitoChat = currentChatId;
+        tempHistory = [];
+        document.body.classList.add('incognito');
+        // hide sidebar with animation but keep a visible edge tab
+        sidebar.classList.add('hidden');
+        edgeTab.classList.remove('hidden');
+        showSnackbar('Incognito enabled — chats won\'t be saved');
+      } else {
+        document.body.classList.remove('incognito');
+        sidebar.classList.remove('hidden');
+        edgeTab.classList.add('hidden');
+        showSnackbar('Incognito disabled');
+        // restore last non-incognito chat (do not create a new blank)
+        if(lastNonIncognitoChat && chats[lastNonIncognitoChat]) loadChat(lastNonIncognitoChat);
+      }
+    }
+    incBtn.addEventListener('click', toggleIncognito);
+
+    // =================== Edge tab show behavior (always available to reveal sidebar) ===================
+    // Click edge tab to reveal sidebar (or toggle)
+    edgeTab.addEventListener('click', ()=>{
+      sidebar.classList.remove('hidden');
+      edgeTab.classList.add('hidden');
     });
 
-    function sendMessage(){
-      const text = messageInput.value.trim();
-      if (!text) return;
-      messageInput.value = '';
-      addMessage(text, 'user');
-      // Here you call your /api/chat to get response then add assistant message
-      // For demo we just echo
-      setTimeout(() => {
-        addMessage("This is a demo reply.", 'assistant');
-      }, 800);
-    }
+    // =================== Clear all chats with animation & confirmation ===================
+    clearAllBtn.addEventListener('click', ()=>{
+      if(!confirm('Clear ALL chats? This cannot be undone.')) return;
+      // animate chat items fade then clear storage
+      const items = Array.from(document.querySelectorAll('.chat-item'));
+      if(items.length === 0){
+        // nothing to clear; still clear storage
+        localStorage.removeItem('red_chats');
+        chats = {};
+        showSnackbar('All chats cleared');
+        showEmpty();
+        return;
+      }
+      items.forEach((it, i) => {
+        it.style.transition = 'opacity 420ms ease, transform 420ms ease';
+        setTimeout(()=> { it.style.opacity = '0'; it.style.transform = 'translateX(-8px)'; }, i*60);
+      });
+      setTimeout(()=> {
+        try { localStorage.removeItem('red_chats'); } catch(e){}
+        chats = {};
+        renderChats();
+        showEmpty();
+        showSnackbar('All chats cleared');
+      }, 420 + items.length*60);
+    });
 
-    function addMessage(content, role){
-      const msg = document.createElement('div');
-      msg.className = 'message ' + role;
-      msg.innerHTML = content.replace(/\n/g, '<br>');
-      messagesDiv.appendChild(msg);
-      // trigger fade-in
-      setTimeout(() => msg.classList.add('show'), 50);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
+    // =================== Init ===================
+    window.addEventListener('load', ()=>{
+      crossfadeNewBackground();
+      initParticles();
+      drawParticles();
+      initParticles();
+      loadChats();
+      // ensure at least one chat
+      if(Object.keys(chats).length===0) createNewChat();
+      else loadAnyOrNew();
+      // entrance animation for sidebar & chat
+      document.querySelectorAll('.chat-panel, .sidebar').forEach((el,i)=>{ el.style.opacity=0; el.style.transform='translateY(8px)'; setTimeout(()=>{ el.style.transition=`all 520ms cubic-bezier(.2,.9,.2,1)`; el.style.opacity=1; el.style.transform='translateY(0)'; }, 150*i); });
+      // edgeTab should be hidden at start
+      edgeTab.classList.add('hidden');
+    });
+
+    // =================== Expose a few helpers in global scope (for in-template onclicks that reference them) ===================
+    window.loadChat = loadChat;
+    window.deleteChat = deleteChat;
+    window.createNewChat = createNewChat;
+    window.toggleIncognito = toggleIncognito;
   </script>
 </body>
 </html>
