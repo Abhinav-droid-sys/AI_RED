@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>RED — Your intelligent AI companion</title>
-  <meta name="description" content="RED — fast, focused AI assistant. Chat now." />
+  <meta name="description" content="RED — intelligent, fast AI assistant for students, developers and creators. Chat instantly." />
 
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23FF3B30'/%3E%3Ctext x='50%25' y='55%25' font-size='18' text-anchor='middle' font-family='Inter, Arial, sans-serif' fill='white' font-weight='700'%3ER%3C/text%3E%3C/svg%3E" />
@@ -18,7 +18,7 @@
       --primary: #FF3B30;
       --primary-light: #FF6B6B;
       --bg-dark: #0A0A0B;
-      --card-bg: rgba(18,18,20,0.8);
+      --card-bg: rgba(18,18,20,0.9);
       --glass-bg: rgba(255,255,255,0.04);
       --glass-border: rgba(255,255,255,0.06);
       --text-main: #FFFFFF;
@@ -27,52 +27,98 @@
     }
     * { box-sizing: border-box; margin:0; padding:0; }
     html, body { height: 100%; }
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg-dark); color: var(--text-main); overflow: hidden; }
+    body { 
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+    }
 
-    /* background layers + dynamic images */
-    .bg-wrap { position: fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
-    .bg-layer { position:absolute; inset:-10%; background-position:center; background-size:cover; filter: blur(28px) brightness(0.36) saturate(1.08); opacity: 0; transition: opacity 1s ease, transform 1s ease; transform: scale(1.04); }
-    .bg-layer.visible { opacity: 1; transform: scale(1); }
-    .bg-hue { position:absolute; inset:0; background: radial-gradient(circle at 30% 20%, rgba(255,59,48,0.06), rgba(10,10,11,0.8)); mix-blend-mode: overlay; pointer-events:none; }
-
-    /* layout */
-    .wrapper { position: relative; z-index: 2; display: flex; height: 100vh; }
-    .sidebar {
-      width: 300px;
+    /* ---------------- Sidebar toolbar ---------------- */
+    #sideToolbar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+      width: 64px;
       background: var(--card-bg);
-      backdrop-filter: blur(12px) saturate(1.1);
-      border-right: 1px solid var(--glass-border);
       display: flex;
       flex-direction: column;
-      transition: margin-left 0.3s ease;
+      align-items: center;
+      padding: 8px 0;
+      gap: 12px;
+      transition: transform 1s ease, opacity 1s ease;
+      z-index: 1000;
     }
-    .sidebar.hidden { margin-left: -300px; }
-    .sidebar .toggle-btn {
-      background: none;
+    #sideToolbar.hidden {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    .toolbar-btn {
+      background: var(--primary);
       border: none;
-      color: var(--text-muted);
-      padding: 12px;
-      text-align: left;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 18px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .toolbar-btn:hover {
+      background: var(--primary-light);
+    }
+    /* when expanded toolbar (optional icons + labels) */
+    .toolbar-label {
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.2;
     }
 
-    .main-panel {
-      flex: 1;
+    /* ---------------- Main layout ---------------- */
+    .wrapper {
+      display: flex;
+      height: 100vh;
+      margin-left: 64px; /* leave space for toolbar */
+      transition: margin-left 1s ease;
+    }
+    .wrapper.full {
+      margin-left: 0px;
+    }
+
+    .chat-panel {
+      flex:1;
       display: flex;
       flex-direction: column;
+      height: 100%;
+      background: var(--card-bg);
     }
-    .main-panel.incognito { filter: grayscale(80%); opacity:0.85; }
 
     .chat-header {
       padding: 16px;
       border-bottom: 1px solid var(--border-color);
-      display: flex; justify-content: space-between; align-items: center;
       backdrop-filter: blur(12px) saturate(1.1);
       background: var(--glass-bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .chat-title { font-size: 20px; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .chat-sub { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+    .chat-title {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .chat-sub {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
 
     .messages {
       flex:1;
@@ -85,7 +131,7 @@
     .message {
       opacity: 0;
       transform: translateY(8px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.25s ease, transform 0.25s ease;
       max-width: 75%;
       word-wrap: break-word;
       padding: 14px 16px;
@@ -115,7 +161,7 @@
       border-top: 1px solid var(--border-color);
       backdrop-filter: blur(12px) saturate(1.1);
       background: var(--glass-bg);
-      display: flex; gap: 10px;
+      display:flex; gap:10px;
     }
     #messageInput {
       flex:1;
@@ -139,245 +185,112 @@
       font-size: 18px;
     }
 
-    /* incognito toggle button (in header) */
-    #incognitoBtn {
-      background: none; border: none;
-      color: var(--text-muted); cursor: pointer;
-      font-size: 16px; padding: 6px 10px;
-    }
-
-    /* responsive / mobile fallback */
-    @media (max-width: 900px) {
-      .sidebar { position: absolute; z-index: 3; height: 100%; }
-      .main-panel { flex:1; }
-    }
+    /* for incognito / other overlays (if needed) */
   </style>
 </head>
 <body>
-  <div class="bg-wrap" aria-hidden="true">
-    <div id="bgA" class="bg-layer"></div>
-    <div id="bgB" class="bg-layer"></div>
-    <div class="bg-hue"></div>
+  <!-- Sidebar toolbar -->
+  <div id="sideToolbar" class="visible">
+    <button id="sidebarToggleBtn" class="toolbar-btn" title="Hide sidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+    <button id="newChatBtn_tool" class="toolbar-btn" title="New chat">
+      <i class="fas fa-plus"></i>
+    </button>
+    <button id="clearChatsBtn" class="toolbar-btn" title="Clear all chats">
+      <i class="fas fa-trash"></i>
+    </button>
+    <!-- You could add history list or other toolbar-icons here -->
   </div>
 
-  <div class="wrapper">
-    <aside class="sidebar" id="sidebar">
-      <button class="toggle-btn" id="sidebarToggle"><i class="fas fa-bars"></i></button>
-      <!-- Sidebar content: logo, new chat, chats list etc. -->
-      <div style="padding:12px;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-          <div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-light)); display:flex;align-items:center;justify-content:center; color:white; font-size:20px;">R</div>
-          <div style="font-size:20px; font-weight:700; background: linear-gradient(135deg,var(--primary),var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">RED</div>
-        </div>
-        <button style="width:100%; padding:12px 0; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;" onclick="createNewChat()">New Chat</button>
-        <div id="chatsList" style="margin-top:16px;"></div>
-      </div>
-    </aside>
-
-    <section class="main-panel" id="mainPanel">
+  <!-- Main wrapper (chat panel) -->
+  <div class="wrapper" id="mainWrapper">
+    <div class="chat-panel">
       <header class="chat-header">
         <div>
           <div class="chat-title">RED</div>
           <div class="chat-sub" id="chatSubtitle">Your intelligent AI companion</div>
         </div>
-        <div>
-          <button id="incognitoBtn" title="Toggle Incognito"><i class="fas fa-user-secret"></i> <span id="incText">Go Incognito</span></button>
-        </div>
+        <!-- (You can keep status / incognito / other controls here) -->
       </header>
 
-      <div class="messages" id="messages"></div>
+      <div class="messages" id="messages">
+        <!-- placeholder when no message -->
+        <div class="empty-state" style="color: var(--text-muted); text-align:center; margin-top:40px;">
+          No messages yet — start the conversation.
+        </div>
+      </div>
 
-      <form class="input-area" onsubmit="(e)=>{ e.preventDefault(); sendMessage(); }">
+      <div class="input-area">
         <textarea id="messageInput" placeholder="Ask me anything..." autocomplete="off"></textarea>
-        <button type="button" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
-      </form>
-    </section>
+        <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
   </div>
 
   <script>
-    // --- Background dynamic logic ---
-    const bgA = document.getElementById('bgA');
-    const bgB = document.getElementById('bgB');
-    let active = 'A';
-    const queries = ['cyberpunk,city','neon,gradient','space,stars','abstract,tech','futuristic,ai','red,technology'];
-    function randomQuery() {
-      return queries[Math.floor(Math.random()*queries.length)];
-    }
-    function loadBackground(layer, url) {
-      const el = layer === 'A' ? bgA : bgB;
-      el.style.backgroundImage = `url("${url}")`;
-      const img = new Image();
-      img.onload = () => { el.classList.add('visible'); }
-      img.onerror = () => { /* ignore or fallback */ }
-      img.src = url;
-    }
-    function changeBackground() {
-      const target = active === 'A' ? 'B' : 'A';
-      const low = `https://source.unsplash.com/800x450/?${encodeURIComponent(randomQuery())}&sig=${Date.now()}`;
-      const high = `https://source.unsplash.com/1600x900/?${encodeURIComponent(randomQuery())}&sig=${Date.now()}`;
-      loadBackground(target, low);
-      const hiImg = new Image();
-      hiImg.onload = () => loadBackground(target, high);
-      hiImg.src = high;
-      active = target;
-      // hide other
-      const other = target === 'A' ? bgB : bgA;
-      other.classList.remove('visible');
-    }
+    // Sidebar toggle logic
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const sideToolbar = document.getElementById('sideToolbar');
+    const mainWrapper = document.getElementById('mainWrapper');
 
-    // --- Sidebar toggle ---
-    document.getElementById('sidebarToggle').onclick = () => {
-      document.getElementById('sidebar').classList.toggle('hidden');
-    }
+    sidebarToggleBtn.addEventListener('click', () => {
+      sideToolbar.classList.toggle('hidden');
+      mainWrapper.classList.toggle('full');
+    });
 
-    // --- Chat state & incognito logic ---
-    let chats = {};
-    let currentChat = null;
-    let isIncognito = false;
-    let lastChatBeforeIncognito = null;
+    // Chat storage & clear-all logic
+    const clearChatsBtn = document.getElementById('clearChatsBtn');
 
-    function saveChats() {
-      try { localStorage.setItem('red_chats', JSON.stringify(chats)); } catch(e) { console.warn(e) }
-    }
-    function loadChats() {
-      try {
-        const s = localStorage.getItem('red_chats');
-        if (s) chats = JSON.parse(s);
-      } catch(e) { console.warn(e); }
-      renderChatsList();
-    }
-    function renderChatsList(){
-      const list = document.getElementById('chatsList');
-      list.innerHTML = '';
-      Object.keys(chats).sort((a,b)=>(chats[b].timestamp - chats[a].timestamp)).forEach(id=>{
-        const el = document.createElement('div');
-        el.style.padding = '8px 12px';
-        el.style.cursor = 'pointer';
-        el.style.color = 'var(--text-muted)';
-        el.innerText = chats[id].title || 'New Chat';
-        el.onclick = ()=> loadChat(id);
-        list.appendChild(el);
-      });
-    }
-
-    function createNewChat(){
-      if (!isIncognito && currentChat) saveChats();
-      const id = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-      chats[id] = { id, title:'New Chat', messages: [], timestamp: Date.now() };
-      currentChat = id;
-      renderChatsList();
-      clearMessages();
-      changeBackground();
-    }
-
-    function loadChat(id){
-      currentChat = id;
-      clearMessages();
-      const m = chats[id].messages || [];
-      m.forEach(msg => addMessageToUI(msg.content, msg.role, msg.time, false));
-      document.getElementById('chatSubtitle').innerText = chats[id].title || 'Conversation';
-    }
-
-    function clearMessages(){
+    clearChatsBtn.addEventListener('click', () => {
+      if (!confirm("Clear all chats? This cannot be undone.")) return;
+      try { localStorage.removeItem('red_chats'); } catch(e){}
+      // Clear UI messages & reset
       document.getElementById('messages').innerHTML = '';
       const empty = document.createElement('div');
+      empty.className = 'empty-state';
       empty.style.color = 'var(--text-muted)';
       empty.style.textAlign = 'center';
-      empty.style.marginTop = '50px';
-      empty.innerText = 'No messages yet — start the conversation.';
-      document.getElementById('messages').appendChild(empty);
-    }
+      empty.style.marginTop = '40px';
+      empty.textContent = 'No messages yet — start the conversation.';
+      document.getElementById('messages').append(empty);
+      // Optionally reload or reset app state — depends on your JS logic
+    });
 
-    function toggleIncognito(){
-      isIncognito = !isIncognito;
-      const main = document.getElementById('mainPanel');
-      document.getElementById('incText').innerText = isIncognito ? 'Exit Incognito' : 'Go Incognito';
-      if (isIncognito){
-        lastChatBeforeIncognito = currentChat;
-        main.classList.add('incognito');
-        document.getElementById('sidebar').classList.add('hidden');
-      } else {
-        main.classList.remove('incognito');
-        document.getElementById('sidebar').classList.remove('hidden');
-        if (lastChatBeforeIncognito) loadChat(lastChatBeforeIncognito);
-      }
-    }
+    // Example send message logic (you already have real backend calling logic)
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('messageInput');
+    const messagesDiv = document.getElementById('messages');
 
-    document.getElementById('incognitoBtn').onclick = toggleIncognito;
-
-    // --- Sending and rendering messages with fade-in ---
-    async function sendMessage(){
-      const inp = document.getElementById('messageInput');
-      const text = inp.value.trim();
-      if (!text) return;
-      inp.value = '';
-      addMessageToUI(text, 'user', new Date().toLocaleTimeString(), true);
-
-      let history = isIncognito ? [] : (chats[currentChat].messages || []);
-      if (!isIncognito) {
-        chats[currentChat].messages.push({ role:'user', content:text, time: new Date().toLocaleTimeString() });
-        chats[currentChat].timestamp = Date.now();
-        saveChats(); renderChatsList();
-      }
-
-      // show loading bubble if you want
-      // call backend API
-      try {
-        const resp = await fetch('/api/chat', {
-          method:'POST', headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ prompt:text, session_id: currentChat, is_incognito, history })
-        });
-        const data = await resp.json();
-        if (data.success){
-          addMessageToUI(data.response, 'assistant', new Date().toLocaleTimeString(), true);
-          if (!isIncognito){
-            chats[currentChat].messages.push({ role:'assistant', content:data.response, time: new Date().toLocaleTimeString() });
-            saveChats();
-          }
-          if (data.chat_title && !isIncognito){
-            chats[currentChat].title = data.chat_title;
-            renderChatsList();
-            document.getElementById('chatSubtitle').innerText = data.chat_title;
-          }
-        } else {
-          addMessageToUI('Error: ' + (data.error||'Unknown'), 'assistant', '', true);
-        }
-      } catch (e) {
-        addMessageToUI('Connection error. Try again.', 'assistant', '', true);
-        console.error(e);
-      }
-    }
-
-    document.getElementById('sendBtn').onclick = sendMessage;
-    document.getElementById('messageInput').addEventListener('keydown', e=>{
-      if (e.key==='Enter' && !e.shiftKey){
-        e.preventDefault(); sendMessage();
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
       }
     });
 
-    function addMessageToUI(content, role, time, animate){
-      const cont = document.getElementById('messages');
-      if (cont.children.length === 1 && cont.children[0].innerText.includes('No messages yet')) cont.innerHTML = '';
+    function sendMessage(){
+      const text = messageInput.value.trim();
+      if (!text) return;
+      messageInput.value = '';
+      addMessage(text, 'user');
+      // Here you call your /api/chat to get response then add assistant message
+      // For demo we just echo
+      setTimeout(() => {
+        addMessage("This is a demo reply.", 'assistant');
+      }, 800);
+    }
+
+    function addMessage(content, role){
       const msg = document.createElement('div');
       msg.className = 'message ' + role;
-      msg.innerHTML = `<div>${content.replace(/\n/g,'<br>')}</div>`;
-      cont.appendChild(msg);
-      if (animate) {
-        // small delay to allow transition
-        setTimeout(()=> msg.classList.add('show'), 50);
-      } else {
-        msg.style.opacity = 1;
-        msg.style.transform = 'translateY(0)';
-      }
-      cont.scrollTop = cont.scrollHeight;
+      msg.innerHTML = content.replace(/\n/g, '<br>');
+      messagesDiv.appendChild(msg);
+      // trigger fade-in
+      setTimeout(() => msg.classList.add('show'), 50);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
-
-    // --- Init on load ---
-    window.addEventListener('load', ()=>{
-      loadChats();
-      if (!currentChat) createNewChat(); else loadChat(currentChat);
-      changeBackground();
-    });
   </script>
 </body>
 </html>
