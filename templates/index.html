@@ -1,884 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RED - AI Assistant</title>
-    
+    <meta charset="UTF-8" />
+    <!-- Exact viewport meta for better mobile layout -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>RED — Your intelligent AI companion</title>
+
+    <!-- SEO / Social meta -->
+    <meta name="description" content="RED — intelligent, fast AI assistant for students, developers and creators. Chat instantly, keep or remove history, and control privacy." />
+    <meta name="keywords" content="AI assistant, chatbot, RED AI, chat, Groq, Llama" />
+    <meta name="theme-color" content="#0A0A0B" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="RED — Your intelligent AI companion" />
+    <meta property="og:description" content="Chat with RED — quick, focused AI assistant for students, devs & creators." />
+    <meta property="og:image" content="" />
+    <meta property="og:type" content="website" />
+
+    <!-- Favicon (inline SVG data URI — no external file needed) -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23FF3B30'/%3E%3Ctext x='50%25' y='55%25' font-size='18' text-anchor='middle' font-family='Inter, Arial, sans-serif' fill='white' font-weight='700'%3ER%3C/text%3E%3C/svg%3E" />
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
 
-        :root {
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="" crossorigin="anonymous">
+
+    <style>
+        /* ========== Base ========== */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root{
             --primary: #FF3B30;
             --primary-dark: #CC2E26;
-            --primary-glow: rgba(255, 59, 48, 0.3);
             --bg-dark: #0A0A0B;
             --bg-card: #16161A;
-            --bg-hover: #1E1E23;
             --text-primary: #FFFFFF;
             --text-secondary: #94949E;
             --border: #26262C;
             --success: #34C759;
             --incognito: #666666;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
+        html,body { height: 100%; }
+        body{
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
             background: var(--bg-dark);
             color: var(--text-primary);
-            overflow: hidden;
-            height: 100vh;
-            transition: background 0.4s ease;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background 0.3s ease;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
 
-        body.incognito-mode {
-            background: #000000;
-        }
-
-        /* Video Background */
-        .video-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        .video-background video {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            min-width: 100%;
-            min-height: 100%;
-            width: auto;
-            height: auto;
-            transform: translate(-50%, -50%);
-            object-fit: cover;
-            filter: blur(60px) brightness(0.4);
-            transition: filter 0.4s ease;
-        }
-
-        body.incognito-mode .video-background video {
-            filter: blur(60px) brightness(0.2);
-        }
-
-        .video-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            background: radial-gradient(circle at 50% 50%, rgba(255, 59, 48, 0.08) 0%, rgba(10, 10, 11, 0.95) 100%);
-            pointer-events: none;
-            transition: background 0.4s ease;
-        }
-
-        body.incognito-mode .video-overlay {
-            background: radial-gradient(circle at 50% 50%, rgba(100, 100, 100, 0.03) 0%, rgba(0, 0, 0, 0.98) 100%);
-        }
-
-        /* Main Container */
+        /* ========== App Layout ========== */
         .app-container {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            height: 100vh;
-            max-width: 1800px;
-            margin: 0 auto;
-            padding: 16px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
             gap: 16px;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 16px;
+            height: calc(100vh - 40px);
         }
 
         /* Sidebar */
         .sidebar {
-            width: 280px;
-            background: rgba(22, 22, 26, 0.8);
-            backdrop-filter: blur(40px);
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-        }
-
-        body.incognito-mode .sidebar {
-            transform: translateX(-100%);
-            opacity: 0;
-            pointer-events: none;
-            width: 0;
-            padding: 0;
-        }
-
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .logo-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 20px var(--primary-glow);
-            animation: logoGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes logoGlow {
-            0%, 100% { box-shadow: 0 4px 20px var(--primary-glow); }
-            50% { box-shadow: 0 4px 30px rgba(255, 59, 48, 0.5); }
-        }
-
-        .logo-text {
-            font-size: 24px;
-            font-weight: 900;
-            background: linear-gradient(135deg, var(--primary) 0%, #FF6B6B 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-        }
-
-        /* New Chat Button */
-        .new-chat-btn {
-            width: 100%;
-            padding: 14px 18px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px var(--primary-glow);
-        }
-
-        .new-chat-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(255, 59, 48, 0.4);
-        }
-
-        /* Chat History */
-        .chats-section {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .chats-section::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .chats-section::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chats-section::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 10px;
-        }
-
-        .chats-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .chat-item {
-            padding: 12px 14px;
-            background: transparent;
-            border: 1px solid transparent;
-            border-radius: 10px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .chat-item:hover {
-            background: var(--bg-card);
-            border-color: var(--border);
-            color: var(--text-primary);
-        }
-
-        .chat-item.active {
-            background: var(--bg-card);
-            border-color: var(--primary);
-            color: var(--text-primary);
-        }
-
-        .chat-item-text {
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .chat-delete {
-            opacity: 0;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            font-size: 12px;
-            transition: all 0.2s ease;
-        }
-
-        .chat-item:hover .chat-delete {
-            opacity: 1;
-        }
-
-        .chat-delete:hover {
-            color: var(--primary);
-        }
-
-        .empty-chats {
-            text-align: center;
-            padding: 20px;
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-
-        /* Chat Container */
-        .chat-container {
-            flex: 1;
-            background: rgba(22, 22, 26, 0.8);
-            backdrop-filter: blur(40px);
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: all 0.4s ease;
-        }
-
-        body.incognito-mode .chat-container {
-            background: rgba(10, 10, 10, 0.9);
-            border-color: #1a1a1a;
-        }
-
-        /* Chat Header */
-        .chat-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        body.incognito-mode .chat-header {
-            border-bottom-color: #1a1a1a;
-        }
-
-        .header-left h1 {
-            font-size: 24px;
-            font-weight: 800;
-            margin: 0 0 4px 0;
-            background: linear-gradient(135deg, var(--primary) 0%, #FF6B6B 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        body.incognito-mode .header-left h1 {
-            background: linear-gradient(135deg, #999999 0%, #666666 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .header-subtitle {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .incognito-btn {
-            padding: 10px 18px;
-            background: rgba(255, 59, 48, 0.1);
-            border: 1px solid rgba(255, 59, 48, 0.3);
-            border-radius: 12px;
-            color: var(--primary);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        body.incognito-mode .incognito-btn {
-            background: rgba(100, 100, 100, 0.2);
-            border-color: rgba(100, 100, 100, 0.4);
-            color: #999999;
-        }
-
-        .incognito-btn:hover {
-            background: rgba(255, 59, 48, 0.2);
-            transform: scale(1.05);
-        }
-
-        body.incognito-mode .incognito-btn:hover {
-            background: rgba(100, 100, 100, 0.3);
-        }
-
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: rgba(52, 199, 89, 0.1);
-            border: 1px solid rgba(52, 199, 89, 0.3);
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--success);
-        }
-
-        body.incognito-mode .status-badge {
-            background: rgba(100, 100, 100, 0.1);
-            border-color: rgba(100, 100, 100, 0.3);
-            color: var(--text-secondary);
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            background: var(--success);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        body.incognito-mode .status-dot {
-            background: var(--incognito);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-        }
-
-        /* Messages Area */
-        .messages-wrapper {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            scroll-behavior: smooth;
-        }
-
-        .messages-wrapper::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .messages-wrapper::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .messages-wrapper::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 10px;
-        }
-
-        .messages-wrapper::-webkit-scrollbar-thumb:hover {
-            background: var(--primary);
-        }
-
-        /* Empty State */
-        .empty-state {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            gap: 20px;
-            animation: fadeIn 0.6s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .empty-icon {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
-            animation: float 3s ease-in-out infinite;
-            box-shadow: 0 20px 60px var(--primary-glow);
-        }
-
-        body.incognito-mode .empty-icon {
-            background: linear-gradient(135deg, var(--incognito) 0%, #444444 100%);
-            box-shadow: 0 20px 60px rgba(100, 100, 100, 0.3);
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-
-        .empty-state h2 {
-            font-size: 32px;
-            font-weight: 800;
-            margin: 0;
-            background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .empty-state p {
-            font-size: 16px;
-            color: var(--text-secondary);
-            max-width: 400px;
-            margin: 0;
-        }
-
-        /* Messages */
-        .message {
-            display: flex;
-            align-items: flex-end;
-            gap: 12px;
-            margin-bottom: 20px;
-            animation: messageSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 0;
-            animation-fill-mode: forwards;
-        }
-
-        @keyframes messageSlide {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.user {
-            flex-direction: row-reverse;
-            justify-content: flex-end;
-        }
-
-        .message-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 18px;
-        }
-
-        .message.assistant .message-avatar {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            box-shadow: 0 4px 15px var(--primary-glow);
-        }
-
-        body.incognito-mode .message.assistant .message-avatar {
-            background: linear-gradient(135deg, var(--incognito) 0%, #444444 100%);
-            box-shadow: 0 4px 15px rgba(100, 100, 100, 0.3);
-        }
-
-        .message.user .message-avatar {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        .message-content {
-            flex: 1;
-            max-width: 70%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .message.user .message-content {
-            align-items: flex-end;
-        }
-
-        .message-bubble-wrapper {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
-
-        .message.user .message-bubble-wrapper {
-            flex-direction: row-reverse;
-            justify-content: flex-end;
-        }
-
-        .message-bubble {
-            padding: 16px 20px;
-            border-radius: 16px;
-            font-size: 15px;
-            line-height: 1.6;
-            word-wrap: break-word;
-        }
-
-        .message.assistant .message-bubble {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-            border-radius: 16px 16px 16px 4px;
-        }
-
-        body.incognito-mode .message.assistant .message-bubble {
-            background: rgba(20, 20, 20, 0.8);
-            border-color: #1a1a1a;
-        }
-
-        .message.user .message-bubble {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            border-radius: 16px 16px 4px 16px;
-            box-shadow: 0 4px 20px var(--primary-glow);
-        }
-
-        body.incognito-mode .message.user .message-bubble {
-            background: linear-gradient(135deg, var(--incognito) 0%, #444444 100%);
-            box-shadow: 0 4px 20px rgba(100, 100, 100, 0.3);
-        }
-
-        .message-time {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-top: 6px;
-            padding: 0 4px;
-        }
-
-        /* Message-level controls */
-        .message-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .message.assistant:hover .message-controls {
-            opacity: 1;
-        }
-
-        .msg-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
             background: rgba(22,22,26,0.8);
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            cursor: pointer;
-            padding: 0;
-            transition: all 0.2s ease;
-        }
-
-        .msg-btn:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* Typing Indicator */
-        .typing-indicator {
-            display: inline-flex;
-            gap: 4px;
-            padding: 4px;
-        }
-
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            background: var(--text-secondary);
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-indicator span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-indicator span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-                opacity: 0.7;
-            }
-            30% {
-                transform: translateY(-10px);
-                opacity: 1;
-            }
-        }
-
-        /* Input Area */
-        .input-area {
-            padding: 20px 24px;
-            border-top: 1px solid var(--border);
-            background: rgba(22, 22, 26, 0.95);
-        }
-
-        body.incognito-mode .input-area {
-            background: rgba(10, 10, 10, 0.95);
-            border-top-color: #1a1a1a;
-        }
-
-        .input-wrapper {
-            display: flex;
-            align-items: flex-end;
-            gap: 12px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 12px 16px;
-            transition: all 0.3s ease;
-            min-height: 56px;
-        }
-
-        body.incognito-mode .input-wrapper {
-            background: rgba(20, 20, 20, 0.8);
-            border-color: #1a1a1a;
-        }
-
-        .input-wrapper:focus-within {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-        }
-
-        body.incognito-mode .input-wrapper:focus-within {
-            border-color: var(--incognito);
-            box-shadow: 0 0 0 3px rgba(100, 100, 100, 0.2);
-        }
-
-        #messageInput {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--text-primary);
-            font-size: 15px;
-            font-family: 'Inter', sans-serif;
-            resize: none;
-            max-height: 120px;
-            min-height: 24px;
-            line-height: 24px;
-            overflow-y: auto;
-        }
-
-        #messageInput::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        #messageInput::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 10px;
-        }
-
-        #messageInput::placeholder {
-            color: var(--text-secondary);
-        }
-
-        .send-btn {
-            width: 40px;
-            height: 40px;
-            background: var(--primary);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
+            border: 1px solid var(--border);
+            padding: 18px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
+            flex-direction: column;
+            gap: 12px;
+            overflow: auto;
+        }
+        .logo-section { display:flex; align-items:center; gap:12px; }
+        .logo-icon{
+            width:48px;height:48px;border-radius:12px;
+            background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+            display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 30px rgba(255,59,48,0.2);
+            color:white;
+        }
+        .logo-text { font-size:22px; font-weight:800; letter-spacing:-0.5px; background:linear-gradient(135deg,var(--primary),#FF6B6B); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+        .new-chat-btn {
+            width:100%; padding:12px 14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:10px; justify-content:center;
         }
 
-        body.incognito-mode .send-btn {
-            background: var(--incognito);
+        .chats-section { margin-top:6px; display:flex;flex-direction:column; gap:8px; }
+        .chats-label { font-size:12px; color:var(--text-secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.6px; }
+        .chat-item { padding:10px 12px; border-radius:10px; color:var(--text-secondary); display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; border:1px solid transparent; }
+        .chat-item:hover { background:var(--bg-card); color:var(--text-primary); border-color:var(--border); }
+        .chat-item.active { background:var(--bg-card); border:1px solid var(--primary); color:var(--text-primary); }
+
+        /* ========== Chat panel ========== */
+        .chat-container {
+            display:flex;
+            flex-direction:column;
+            background: rgba(22,22,26,0.8);
+            border-radius:16px;
+            border:1px solid var(--border);
+            overflow: hidden;
         }
 
-        .send-btn:hover {
-            transform: scale(1.1) rotate(15deg);
-            box-shadow: 0 4px 20px var(--primary-glow);
+        .chat-header { display:flex; align-items:center; justify-content:space-between; padding:18px; border-bottom:1px solid var(--border); gap:12px; }
+        .header-left h1 { font-size:22px; margin-bottom:4px; font-weight:800; background:linear-gradient(135deg,var(--primary),#FF6B6B); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .header-subtitle { font-size:13px; color:var(--text-secondary); }
+
+        .header-right { display:flex; align-items:center; gap:8px; }
+        .status-badge { display:flex; align-items:center; gap:8px; padding:6px 12px; border-radius:20px; background: rgba(52,199,89,0.08); border:1px solid rgba(52,199,89,0.18); color:var(--success); font-weight:700; font-size:13px; }
+        .incognito-btn { padding:8px 12px; border-radius:10px; background: rgba(255,59,48,0.08); border:1px solid rgba(255,59,48,0.16); color:var(--primary); cursor:pointer; font-weight:700; display:flex; align-items:center; gap:8px; }
+
+        /* messages area */
+        .messages-wrapper { flex:1; overflow:auto; padding:18px; display:flex; flex-direction:column; gap:16px; }
+        .empty-state { display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; text-align:center; color:var(--text-secondary); padding:24px; }
+        .empty-icon{ width:96px;height:96px;border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:46px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); box-shadow:0 20px 60px rgba(255,59,48,0.12); }
+
+        .message { display:flex; gap:12px; align-items:flex-end; max-width:100%; }
+        .message.user { flex-direction:row-reverse; }
+        .message-avatar { width:40px;height:40px;border-radius:10px; display:flex; align-items:center; justify-content:center; }
+        .message.assistant .message-avatar { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; box-shadow:0 6px 20px rgba(255,59,48,0.12); }
+        .message.user .message-avatar { background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border); }
+
+        .message-bubble { padding:14px 16px; border-radius:14px; font-size:15px; line-height:1.5; max-width:75%; word-wrap:break-word; }
+        .message.assistant .message-bubble { background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); border-radius:16px 16px 16px 6px; }
+        .message.user .message-bubble { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; border-radius:16px 16px 6px 16px; box-shadow:0 10px 30px rgba(255,59,48,0.12); }
+
+        .message-time { font-size:11px; color:var(--text-secondary); margin-top:6px; }
+
+        /* input area */
+        .input-area { padding:14px; border-top:1px solid var(--border); background: rgba(18,18,20,0.6); }
+        .input-wrapper { display:flex; gap:10px; align-items:flex-end; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:10px; min-height:52px; }
+        #messageInput { flex:1; background:transparent; color:var(--text-primary); border:none; outline:none; font-size:15px; resize:none; max-height:120px; }
+        .send-btn { width:44px;height:44px;border-radius:10px;border:none;background:var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; }
+
+        /* footer */
+        .site-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 18px; border-top:1px solid var(--border); background:transparent; font-size:13px; color:var(--text-secondary); }
+        .footer-links { display:flex; gap:12px; align-items:center; }
+        .footer-links a { color:var(--text-secondary); text-decoration:none; font-weight:600; }
+        .footer-links a:hover { color:var(--text-primary); }
+
+        /* small screens */
+        @media (max-width: 900px) {
+            .app-container { grid-template-columns: 1fr; height: 100vh; margin: 0; padding: 8px; gap:10px; }
+            .sidebar { order:2; width:100%; display:flex; flex-direction:row; gap:8px; overflow:auto; padding:10px; align-items:center; }
+            .chats-section { display:none; } /* compact on mobile — chats accessible via new chat + recent */
+            .chat-container { order:1; height: calc(100vh - 140px); }
+            .messages-wrapper { padding:12px 10px; }
+            .message-bubble { max-width:85%; }
+            body { overflow: hidden; }
         }
 
-        body.incognito-mode .send-btn:hover {
-            box-shadow: 0 4px 20px rgba(100, 100, 100, 0.4);
-        }
+        /* accessibility focus */
+        button:focus, a:focus, textarea:focus { outline: 3px solid rgba(255,59,48,0.18); outline-offset: 2px; border-radius:8px; }
 
-        .send-btn:active {
-            transform: scale(0.95) rotate(0deg);
-        }
+        /* subtle animation for logo */
+        @keyframes logoPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.03); } }
+        .logo-icon { animation: logoPulse 3s ease-in-out infinite; }
 
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
+        /* markdown code style inside bubble */
+        code { background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; font-size:13px; }
 
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-                padding: 8px;
-            }
-
-            .sidebar {
-                width: 100%;
-                height: auto;
-            }
-
-            body.incognito-mode .sidebar {
-                display: none;
-            }
-
-            .message-content {
-                max-width: 85%;
-            }
-
-            .header-left h1 {
-                font-size: 20px;
-            }
-
-            .empty-icon {
-                width: 80px;
-                height: 80px;
-                font-size: 36px;
-            }
-
-            .empty-state h2 {
-                font-size: 24px;
-            }
-        }
     </style>
 </head>
-<body class="normal-mode">
-    <!-- Video Background -->
-    <div class="video-background">
-        <video autoplay muted loop playsinline>
+<body class="normal-mode" aria-labelledby="pageTitle">
+    <!-- Video background (kept but made less heavy on mobile) -->
+    <div class="video-background" aria-hidden="true" style="position:fixed; inset:0; z-index:0; pointer-events:none;">
+        <video autoplay muted loop playsinline style="width:100%; height:100%; object-fit:cover; filter: blur(48px) brightness(0.36);">
             <source src="{{ url_for('static', filename='bg.mp4') }}" type="video/mp4">
         </video>
+        <div style="position:absolute; inset:0; background: radial-gradient(circle at 50% 40%, rgba(255,59,48,0.06), rgba(10,10,11,0.95));"></div>
     </div>
-    <div class="video-overlay"></div>
 
-    <!-- Main App -->
-    <div class="app-container">
+    <main class="app-container" role="main" style="position:relative; z-index:2;">
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="logo-section">
-                <div class="logo-icon">
-                    <i class="fas fa-fire"></i>
+        <aside class="sidebar" id="sidebar" aria-label="Chat sidebar">
+            <div class="logo-section" role="img" aria-label="RED logo">
+                <div class="logo-icon"><i class="fas fa-fire" aria-hidden="true"></i></div>
+                <div>
+                    <div class="logo-text">RED</div>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Fast. Focused. Friendly.</div>
                 </div>
-                <div class="logo-text">RED</div>
             </div>
 
-            <button class="new-chat-btn" onclick="createNewChat()">
-                <i class="fas fa-plus"></i>
+            <button class="new-chat-btn" onclick="createNewChat()" aria-label="Start new chat">
+                <i class="fas fa-plus" aria-hidden="true"></i>
                 <span>New Chat</span>
             </button>
 
-            <div class="chats-section" id="chatsSection">
+            <div class="chats-section" id="chatsSection" aria-live="polite">
                 <div class="chats-label">Recent Chats</div>
-                <div id="chatsList"></div>
+                <div id="chatsList" role="list"></div>
+            </div>
+
+            <div style="margin-top:auto;">
+                <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">Small note</div>
+                <div style="font-size:13px; color:var(--text-secondary); line-height:1.4;">
+                    Messages are stored locally in your browser unless you use incognito mode. See Privacy for details.
+                </div>
             </div>
         </aside>
 
-        <!-- Chat Container -->
-        <main class="chat-container">
+        <!-- Chat Column -->
+        <section class="chat-container" aria-labelledby="pageTitle">
             <header class="chat-header">
                 <div class="header-left">
-                    <h1>RED</h1>
+                    <h1 id="pageTitle">RED</h1>
                     <p class="header-subtitle" id="chatSubtitle">Your intelligent AI companion</p>
                 </div>
-                <div class="header-right">
-                    <div class="status-badge">
-                        <span class="status-dot"></span>
+
+                <div class="header-right" role="region" aria-label="Status and controls">
+                    <div class="status-badge" title="Service status">
+                        <span class="status-dot" style="width:8px;height:8px;border-radius:50%; background:var(--success); display:inline-block;"></span>
                         <span id="statusText">Online</span>
                     </div>
-                    <button class="incognito-btn" id="incognitoBtn" onclick="toggleIncognito()">
-                        <i class="fas fa-user-secret"></i>
+
+                    <button class="incognito-btn" id="incognitoBtn" onclick="toggleIncognito()" aria-pressed="false" title="Toggle incognito (temporary chat)">
+                        <i class="fas fa-user-secret" aria-hidden="true"></i>
                         <span id="incognitoText">Go Incognito</span>
                     </button>
                 </div>
             </header>
 
-            <div class="messages-wrapper" id="messagesWrapper">
-                <div class="empty-state" id="emptyState">
-                    <div class="empty-icon">
-                        <i class="fas fa-fire"></i>
-                    </div>
+            <div class="messages-wrapper" id="messagesWrapper" tabindex="0" aria-live="polite">
+                <div class="empty-state" id="emptyState" role="status">
+                    <div class="empty-icon"><i class="fas fa-fire" style="font-size:36px;"></i></div>
                     <h2>Welcome to RED</h2>
-                    <p>Start a conversation with your AI assistant. Ask anything!</p>
+                    <p>Start a conversation with your AI assistant. Ask anything — homework, code help, or creative ideas.</p>
                 </div>
             </div>
 
-            <div class="input-area">
+            <form class="input-area" onsubmit="(function(e){e.preventDefault(); sendMessage();})(event)" aria-label="Message input form">
                 <div class="input-wrapper">
-                    <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
-                    <button class="send-btn" id="sendBtn">
-                        <i class="fas fa-paper-plane"></i>
+                    <textarea id="messageInput" placeholder="Ask me anything — e.g. 'Explain quicksort in 2 minutes'." rows="1" aria-label="Message" autocomplete="off"></textarea>
+                    <button class="send-btn" id="sendBtn" type="button" aria-label="Send message">
+                        <i class="fas fa-paper-plane" aria-hidden="true"></i>
                     </button>
                 </div>
-            </div>
-        </main>
-    </div>
+
+                <div class="site-footer" role="contentinfo">
+                    <div style="font-size:13px; color:var(--text-secondary);">RED • Built with focus</div>
+                    <div class="footer-links">
+                        <a href="/privacy" id="privacyLink" title="Privacy & data usage">Privacy</a>
+                        <a href="#" id="termsLink" title="Terms of service (coming soon)" onclick="alert('Terms page not set up yet.'); return false;">Terms</a>
+                        <a href="mailto:contact@redai.live" title="Contact us">Contact</a>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </main>
 
     <script>
+        /* ========== Client-side chat UX (kept & improved) ========== */
+
         let currentChatId = generateId();
         let chats = {};
         let isIncognito = false;
@@ -891,98 +265,78 @@
         }
 
         function loadChats() {
-            const saved = localStorage.getItem('red_chats');
-            if (saved) {
-                chats = JSON.parse(saved);
-                renderChatsList();
+            try {
+                const saved = localStorage.getItem('red_chats');
+                if (saved) {
+                    chats = JSON.parse(saved);
+                    renderChatsList();
+                }
+            } catch (e) {
+                console.warn('Failed to load chats from localStorage', e);
             }
         }
 
         function saveChats() {
-            localStorage.setItem('red_chats', JSON.stringify(chats));
+            try {
+                localStorage.setItem('red_chats', JSON.stringify(chats));
+            } catch (e) {
+                console.warn('Failed to save chats to localStorage', e);
+            }
         }
 
         function renderChatsList() {
             const chatsList = document.getElementById('chatsList');
-            const chatIds = Object.keys(chats).sort((a, b) => {
-                return (chats[b].timestamp || 0) - (chats[a].timestamp || 0);
-            });
-
+            const chatIds = Object.keys(chats).sort((a, b) => (chats[b].timestamp || 0) - (chats[a].timestamp || 0));
             if (chatIds.length === 0) {
-                chatsList.innerHTML = '<div class="empty-chats">No chats yet</div>';
+                chatsList.innerHTML = '<div class="empty-chats" style="color:var(--text-secondary); font-size:13px;">No chats yet</div>';
                 return;
             }
-
             chatsList.innerHTML = chatIds.map(id => `
-                <div class="chat-item ${id === currentChatId && !isIncognito ? 'active' : ''}" onclick="loadChat('${id}')">
-                    <span class="chat-item-text">${chats[id].title || 'New Chat'}</span>
+                <div role="listitem" class="chat-item ${id === currentChatId && !isIncognito ? 'active' : ''}" onclick="loadChat('${id}')">
+                    <span class="chat-item-text">${escapeHtml(chats[id].title || 'New Chat')}</span>
                     <i class="fas fa-trash chat-delete" onclick="event.stopPropagation(); deleteChat('${id}')"></i>
                 </div>
             `).join('');
         }
 
         function createNewChat() {
-            if (isIncognito) {
-                toggleIncognito();
-            }
-
+            if (isIncognito) toggleIncognito(); // leaving incognito when starting new persistent chat
             if (chats[currentChatId] && chats[currentChatId].messages && chats[currentChatId].messages.length > 0) {
                 saveChats();
             }
-
             currentChatId = generateId();
-            chats[currentChatId] = {
-                id: currentChatId,
-                title: 'New Chat',
-                messages: [],
-                timestamp: Date.now()
-            };
-
+            chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
             clearMessages();
             saveChats();
             renderChatsList();
             document.getElementById('chatSubtitle').textContent = 'New conversation';
+            document.getElementById('messageInput').focus();
         }
 
         function loadChat(chatId) {
-            if (isIncognito) {
-                toggleIncognito();
-            }
-
+            if (isIncognito) toggleIncognito();
             currentChatId = chatId;
-            const chat = chats[chatId];
-
+            const chat = chats[chatId] || { messages: [] };
             clearMessages();
-
-            if (chat && chat.messages) {
-                chat.messages.forEach(msg => {
-                    addMessageToUI(msg.content, msg.role, msg.time);
-                });
+            if (chat.messages) {
+                chat.messages.forEach(msg => addMessageToUI(msg.content, msg.role, msg.time));
             }
-
-            document.getElementById('chatSubtitle').textContent = chat.title || 'New Chat';
+            document.getElementById('chatSubtitle').textContent = chats[chatId] && chats[chatId].title ? chats[chatId].title : 'Conversation';
             renderChatsList();
         }
 
         function deleteChat(chatId) {
-            if (confirm('Delete this chat?')) {
-                delete chats[chatId];
-                saveChats();
-
-                if (chatId === currentChatId) {
-                    createNewChat();
-                } else {
-                    renderChatsList();
-                }
-            }
+            if (!confirm('Delete this chat?')) return;
+            delete chats[chatId];
+            saveChats();
+            if (chatId === currentChatId) createNewChat();
+            else renderChatsList();
         }
 
         function clearMessages() {
             document.getElementById('messagesWrapper').innerHTML = `
                 <div class="empty-state" id="emptyState">
-                    <div class="empty-icon">
-                        <i class="fas fa-fire"></i>
-                    </div>
+                    <div class="empty-icon"><i class="fas fa-fire" style="font-size:36px;"></i></div>
                     <h2>Welcome to RED</h2>
                     <p>Start a conversation with your AI assistant. Ask anything!</p>
                 </div>
@@ -994,22 +348,29 @@
             const body = document.body;
             const statusText = document.getElementById('statusText');
             const incognitoText = document.getElementById('incognitoText');
+            const incBtn = document.getElementById('incognitoBtn');
 
             if (isIncognito) {
                 body.classList.add('incognito-mode');
                 statusText.textContent = 'Incognito';
                 incognitoText.textContent = 'Exit Incognito';
+                incBtn.setAttribute('aria-pressed', 'true');
                 document.getElementById('chatSubtitle').textContent = 'Temporary chat (not saved)';
                 tempIncognitoHistory = [];
+                // do not persist chats while incognito
             } else {
                 body.classList.remove('incognito-mode');
                 statusText.textContent = 'Online';
                 incognitoText.textContent = 'Go Incognito';
-                tempIncognitoHistory = [];
-                createNewChat();
+                incBtn.setAttribute('aria-pressed', 'false');
+                // when exiting incognito create new persistent chat if there was conversation
+                if (tempIncognitoHistory.length > 0) {
+                    createNewChat();
+                }
             }
         }
 
+        // textarea auto-resize
         const textarea = document.getElementById('messageInput');
         textarea.addEventListener('input', function() {
             this.style.height = 'auto';
@@ -1028,7 +389,6 @@
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
-            
             if (!message || isSending) return;
 
             isSending = true;
@@ -1045,12 +405,7 @@
                 tempIncognitoHistory.push({ role: 'user', content: message });
             } else {
                 if (!chats[currentChatId]) {
-                    chats[currentChatId] = {
-                        id: currentChatId,
-                        title: 'New Chat',
-                        messages: [],
-                        timestamp: Date.now()
-                    };
+                    chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
                 }
                 chats[currentChatId].messages.push({ role: 'user', content: message, time });
             }
@@ -1107,44 +462,38 @@
 
         function addMessageToUI(content, role, time) {
             const wrapper = document.getElementById('messagesWrapper');
+            // make sure empty state removed
+            const empty = document.getElementById('emptyState');
+            if (empty) empty.remove();
+
             const messageDiv = document.createElement('div');
             const id = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2);
             messageDiv.id = id;
             messageDiv.className = `message ${role}`;
-            
+
             const controlsHtml = role === 'assistant' ? `
-                <div class="message-controls">
-                    <button class="msg-btn" onclick="copyMessage('${id}')">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                    <button class="msg-btn" onclick="regenerateMessage('${id}')">
-                        <i class="fas fa-rotate-right"></i>
-                    </button>
-                    <button class="msg-btn" onclick="deleteMessage('${id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                <div style="display:flex;flex-direction:column; gap:6px; margin-left:8px;">
+                    <button class="msg-btn" onclick="copyMessage('${id}')" title="Copy message" style="border-radius:8px;padding:6px;border:1px solid var(--border); background:transparent; color:var(--text-secondary);"><i class="fas fa-copy"></i></button>
                 </div>
             ` : '';
 
             messageDiv.innerHTML = `
-                <div class="message-avatar">
+                <div class="message-avatar" aria-hidden="true">
                     <i class="fas fa-${role === 'user' ? 'user' : 'robot'}"></i>
                 </div>
-                <div class="message-content">
-                    <div class="message-bubble-wrapper">
-                        <div class="message-bubble">${formatMessage(content)}</div>
-                        ${controlsHtml}
-                    </div>
+                <div style="display:flex;flex-direction:column; gap:6px; align-items:flex-start;">
+                    <div class="message-bubble">${formatMessage(content)}</div>
                     <div class="message-time">${time}</div>
                 </div>
             `;
-            
+
             wrapper.appendChild(messageDiv);
             wrapper.scrollTop = wrapper.scrollHeight;
         }
 
         function formatMessage(text) {
-            return text
+            // basic markdown-like formatting
+            return escapeHtml(text)
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/`(.*?)`/g, '<code>$1</code>')
@@ -1158,15 +507,13 @@
             messageDiv.id = id;
             messageDiv.className = 'message assistant';
             messageDiv.innerHTML = `
-                <div class="message-avatar">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="message-content">
+                <div class="message-avatar" aria-hidden="true"><i class="fas fa-robot"></i></div>
+                <div style="display:flex;flex-direction:column; gap:6px;">
                     <div class="message-bubble">
-                        <div class="typing-indicator">
-                            <span></span>
-                            <span></span>
-                            <span></span>
+                        <div class="typing-indicator" style="display:inline-flex; gap:6px;">
+                            <span style="width:8px;height:8px;border-radius:50%;background:var(--text-secondary);display:inline-block; animation: typing 1.2s infinite;"></span>
+                            <span style="width:8px;height:8px;border-radius:50%;background:var(--text-secondary);display:inline-block; animation: typing 1.2s 0.15s infinite;"></span>
+                            <span style="width:8px;height:8px;border-radius:50%;background:var(--text-secondary);display:inline-block; animation: typing 1.2s 0.3s infinite;"></span>
                         </div>
                     </div>
                 </div>
@@ -1190,26 +537,27 @@
             temp.select();
             document.execCommand('copy');
             document.body.removeChild(temp);
+            alert('Copied to clipboard');
         }
 
-        function deleteMessage(id) {
-            const el = document.getElementById(id);
-            if (el) el.remove();
+        function escapeHtml(unsafe) {
+            return String(unsafe)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
+        // regenerate placeholder (kept minimal)
         async function regenerateMessage(id) {
-            if (!lastUserPrompt) {
-                alert('No previous user message to regenerate from.');
-                return;
-            }
-
+            if (!lastUserPrompt) return alert('No previous user message to regenerate from.');
+            // remove message id then re-request
             const el = document.getElementById(id);
             if (el) el.remove();
-
             const loadingId = addLoadingMessage();
-
             try {
-                const response = await fetch('/api/chat', {
+                const resp = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1219,48 +567,33 @@
                         history: isIncognito ? tempIncognitoHistory : []
                     })
                 });
-
-                const data = await response.json();
+                const data = await resp.json();
                 removeMessage(loadingId);
-
-                if (data.success) {
-                    const assistantTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    addMessageToUI(data.response, 'assistant', assistantTime);
-
-                    if (isIncognito) {
-                        tempIncognitoHistory.push({ role: 'assistant', content: data.response });
-                    } else {
-                        if (!chats[currentChatId]) {
-                            chats[currentChatId] = {
-                                id: currentChatId,
-                                title: data.chat_title || 'New Chat',
-                                messages: [],
-                                timestamp: Date.now()
-                            };
-                        }
-                        chats[currentChatId].messages.push({ role: 'assistant', content: data.response, time: assistantTime });
-                        chats[currentChatId].timestamp = Date.now();
-                        if (data.chat_title) {
-                            chats[currentChatId].title = data.chat_title;
-                            document.getElementById('chatSubtitle').textContent = data.chat_title;
-                        }
-                        saveChats();
-                        renderChatsList();
-                    }
-                } else {
-                    addMessageToUI('Sorry, an error occurred: ' + (data.error || 'Unknown error'), 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-                }
-            } catch (error) {
+                if (data.success) addMessageToUI(data.response, 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+                else addMessageToUI('Regenerate failed: ' + (data.error || 'unknown'), 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+            } catch (err) {
                 removeMessage(loadingId);
-                addMessageToUI('Connection error during regenerate. Please try again.', 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-                console.error('Regenerate error:', error);
+                addMessageToUI('Connection error during regenerate.', 'assistant', new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+                console.error(err);
             }
         }
 
+        // Init
         window.addEventListener('load', () => {
             loadChats();
             document.getElementById('messageInput').focus();
+            // ensure initial chat exists
+            if (!chats[currentChatId]) {
+                chats[currentChatId] = { id: currentChatId, title: 'New Chat', messages: [], timestamp: Date.now() };
+            }
         });
+
+        // basic typing animation keyframes (inlined to avoid missing css)
+        (function addTypingKeyframes(){
+            const s = document.createElement('style');
+            s.innerHTML = `@keyframes typing { 0%,60%,100% { transform: translateY(0); opacity:0.6 } 30% { transform: translateY(-6px); opacity:1 } }`;
+            document.head.appendChild(s);
+        })();
     </script>
 </body>
 </html>
