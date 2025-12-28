@@ -22,17 +22,55 @@
 
 *{ box-sizing:border-box; }
 
+html,body{
+  height:100%;
+}
+
 body{
   margin:0;
   font-family:Inter,system-ui,sans-serif;
-  background:radial-gradient(circle at 20% 10%, rgba(255,59,48,0.12), transparent 40%), var(--bg);
+  background:var(--bg);
   color:white;
-  height:100dvh;
   overflow:auto;
 }
 
-/* ============ APP WRAPPER (BOX SEPARATION KEPT) ============ */
+/* ================= BACKGROUND WALLPAPER ================= */
+.bg-wrap{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+
+.bg-layer{
+  position:absolute;
+  inset:-10%;
+  background-size:cover;
+  background-position:center;
+  filter:blur(28px) brightness(0.38) saturate(1.1);
+  opacity:0;
+  transition:opacity 900ms ease, transform 900ms ease;
+  transform:scale(1.04);
+}
+.bg-layer.visible{
+  opacity:1;
+  transform:scale(1);
+}
+
+.bg-hue{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,59,48,0.12), transparent 45%),
+    linear-gradient(180deg, rgba(10,10,11,0.4), rgba(10,10,11,0.85));
+  mix-blend-mode:overlay;
+}
+
+/* ================= APP WRAPPER ================= */
 .app{
+  position:relative;
+  z-index:2;
   max-width:980px;
   margin:14px auto;
   height:calc(100dvh - 28px);
@@ -42,7 +80,7 @@ body{
   padding:12px;
 }
 
-/* ============ HEADER GLASS BOX ============ */
+/* ================= HEADER GLASS ================= */
 .header{
   display:flex;
   justify-content:space-between;
@@ -50,7 +88,7 @@ body{
   padding:14px 18px;
   border-radius:16px;
   background:var(--glass);
-  backdrop-filter:blur(16px) saturate(1.2);
+  backdrop-filter:blur(18px) saturate(1.2);
   border:1px solid var(--glass-border);
 }
 
@@ -70,19 +108,18 @@ body{
   cursor:pointer;
 }
 
-/* ============ CHAT GLASS BOX ============ */
+/* ================= CHAT GLASS ================= */
 .chat-box{
   flex:1;
   display:flex;
   flex-direction:column;
   border-radius:18px;
   background:var(--glass);
-  backdrop-filter:blur(18px) saturate(1.15);
+  backdrop-filter:blur(20px) saturate(1.15);
   border:1px solid var(--glass-border);
   overflow:hidden;
 }
 
-/* messages */
 .messages{
   flex:1;
   padding:18px;
@@ -93,13 +130,8 @@ body{
   -webkit-overflow-scrolling:touch;
 }
 
-.msg{
-  display:flex;
-  max-width:85%;
-}
-.msg.user{
-  align-self:flex-end;
-}
+.msg{ display:flex; max-width:85%; }
+.msg.user{ align-self:flex-end; }
 
 .bubble{
   padding:12px 16px;
@@ -109,7 +141,6 @@ body{
 }
 .bubble.user{
   background:linear-gradient(135deg,var(--red),var(--red2));
-  color:white;
   border-bottom-right-radius:6px;
 }
 .bubble.bot{
@@ -118,12 +149,12 @@ body{
   border-bottom-left-radius:6px;
 }
 
-/* ============ INPUT GLASS BOX (STICKY) ============ */
+/* ================= INPUT ================= */
 .input-wrap{
   position:sticky;
   bottom:0;
   padding:14px;
-  background:rgba(6,6,7,0.55);
+  background:rgba(6,6,7,0.45);
   backdrop-filter:blur(18px);
   border-top:1px solid rgba(255,255,255,0.08);
 }
@@ -159,7 +190,7 @@ textarea{
   cursor:pointer;
 }
 
-/* ============ BOTTOM SHEET (GLASS HISTORY) ============ */
+/* ================= HISTORY BOTTOM SHEET ================= */
 .sheet{
   position:fixed;
   left:0;
@@ -176,7 +207,6 @@ textarea{
   display:flex;
   flex-direction:column;
 }
-
 .sheet.open{ transform:translateY(0); }
 
 .sheet-header{
@@ -185,12 +215,6 @@ textarea{
   justify-content:space-between;
   align-items:center;
   border-bottom:1px solid rgba(255,255,255,0.08);
-}
-
-.sheet-header h3{
-  margin:0;
-  font-size:16px;
-  color:var(--muted);
 }
 
 .sheet-list{
@@ -205,13 +229,9 @@ textarea{
   background:rgba(255,255,255,0.08);
   border:1px solid rgba(255,255,255,0.12);
   margin-bottom:10px;
-  cursor:pointer;
-}
-.chat-item:hover{
-  background:rgba(255,255,255,0.14);
 }
 
-/* ============ MOBILE TUNING ============ */
+/* ================= MOBILE TUNING ================= */
 @media (max-width:600px){
   .bubble{ max-width:90%; font-size:14px; }
   .app{ padding:8px; gap:10px; }
@@ -221,9 +241,15 @@ textarea{
 
 <body>
 
+<!-- BACKGROUND -->
+<div class="bg-wrap">
+  <div id="bgA" class="bg-layer"></div>
+  <div id="bgB" class="bg-layer"></div>
+  <div class="bg-hue"></div>
+</div>
+
 <div class="app">
 
-  <!-- HEADER -->
   <div class="header">
     <div class="brand">RED</div>
     <button class="icon-btn" onclick="toggleSheet()">
@@ -231,7 +257,6 @@ textarea{
     </button>
   </div>
 
-  <!-- CHAT BOX -->
   <div class="chat-box">
     <div class="messages" id="messages">
       <div class="msg">
@@ -251,7 +276,6 @@ textarea{
 
 </div>
 
-<!-- HISTORY SHEET -->
 <div class="sheet" id="sheet">
   <div class="sheet-header">
     <h3>Chat History</h3>
@@ -265,15 +289,51 @@ textarea{
 </div>
 
 <script>
+/* ========== BACKGROUND LOGIC (FROM ORIGINAL) ========== */
+const bgA = document.getElementById("bgA");
+const bgB = document.getElementById("bgB");
+let active = "A";
+const queries = [
+  "technology,abstract",
+  "cyberpunk,city",
+  "neon,gradient",
+  "red,technology",
+  "futuristic,ai"
+];
+
+function randQuery(){
+  return queries[Math.floor(Math.random()*queries.length)];
+}
+function img(q,seed,size){
+  return `https://source.unsplash.com/${size}/?${encodeURIComponent(q)}&sig=${seed}`;
+}
+
+function crossfadeBg(){
+  const seed = Date.now();
+  const q = randQuery();
+  const next = active==="A"?"B":"A";
+  const el = next==="A"?bgA:bgB;
+
+  el.classList.remove("visible");
+  el.style.backgroundImage = `url("${img(q,seed,'1200x800')}")`;
+  setTimeout(()=>el.classList.add("visible"),60);
+
+  const other = next==="A"?bgB:bgA;
+  other.classList.remove("visible");
+  active = next;
+}
+
+crossfadeBg();
+setInterval(crossfadeBg, 25000);
+
+/* ========== CHAT LOGIC (UNCHANGED) ========== */
 const sheet = document.getElementById("sheet");
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
 
-function toggleSheet(){
-  sheet.classList.toggle("open");
-}
+function toggleSheet(){ sheet.classList.toggle("open"); }
 
-input.addEventListener("input", ()=>{
+input.addEventListener("input",()=>{
   input.style.height="auto";
   input.style.height=Math.min(input.scrollHeight,140)+"px";
 });
@@ -300,10 +360,10 @@ async function sendMessage(){
     });
     const d = await r.json();
     removeTyping();
-    addMsg(d.response || "Error", "bot");
+    addMsg(d.response || "Error","bot");
   }catch{
     removeTyping();
-    addMsg("Network error.", "bot");
+    addMsg("Network error.","bot");
   }
 }
 
