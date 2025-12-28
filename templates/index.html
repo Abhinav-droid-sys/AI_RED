@@ -22,9 +22,7 @@
 
 *{ box-sizing:border-box; }
 
-html,body{
-  height:100%;
-}
+html,body{ height:100%; }
 
 body{
   margin:0;
@@ -34,13 +32,13 @@ body{
   overflow:auto;
 }
 
-/* ================= BACKGROUND WALLPAPER ================= */
+/* ================= BACKGROUND ================= */
 .bg-wrap{
   position:fixed;
   inset:0;
   z-index:0;
-  overflow:hidden;
   pointer-events:none;
+  overflow:hidden;
 }
 
 .bg-layer{
@@ -50,8 +48,8 @@ body{
   background-position:center;
   filter:blur(28px) brightness(0.38) saturate(1.1);
   opacity:0;
-  transition:opacity 900ms ease, transform 900ms ease;
   transform:scale(1.04);
+  transition:opacity 900ms ease, transform 900ms ease;
 }
 .bg-layer.visible{
   opacity:1;
@@ -67,7 +65,7 @@ body{
   mix-blend-mode:overlay;
 }
 
-/* ================= APP WRAPPER ================= */
+/* ================= APP ================= */
 .app{
   position:relative;
   z-index:2;
@@ -80,7 +78,7 @@ body{
   padding:12px;
 }
 
-/* ================= HEADER GLASS ================= */
+/* ================= HEADER ================= */
 .header{
   display:flex;
   justify-content:space-between;
@@ -108,7 +106,7 @@ body{
   cursor:pointer;
 }
 
-/* ================= CHAT GLASS ================= */
+/* ================= CHAT BOX ================= */
 .chat-box{
   flex:1;
   display:flex;
@@ -190,7 +188,7 @@ textarea{
   cursor:pointer;
 }
 
-/* ================= HISTORY BOTTOM SHEET ================= */
+/* ================= HISTORY SHEET ================= */
 .sheet{
   position:fixed;
   left:0;
@@ -231,7 +229,7 @@ textarea{
   margin-bottom:10px;
 }
 
-/* ================= MOBILE TUNING ================= */
+/* ================= MOBILE ================= */
 @media (max-width:600px){
   .bubble{ max-width:90%; font-size:14px; }
   .app{ padding:8px; gap:10px; }
@@ -289,44 +287,39 @@ textarea{
 </div>
 
 <script>
-/* ========== BACKGROUND LOGIC (FROM ORIGINAL) ========== */
+/* ========== BACKGROUND (PICSUM / LOREM) ========== */
 const bgA = document.getElementById("bgA");
 const bgB = document.getElementById("bgB");
-let active = "A";
-const queries = [
-  "technology,abstract",
-  "cyberpunk,city",
-  "neon,gradient",
-  "red,technology",
-  "futuristic,ai"
-];
+let activeLayer = "A";
 
-function randQuery(){
-  return queries[Math.floor(Math.random()*queries.length)];
-}
-function img(q,seed,size){
-  return `https://source.unsplash.com/${size}/?${encodeURIComponent(q)}&sig=${seed}`;
+function loremImage(seed){
+  const isMobile = window.innerWidth < 600;
+  const w = isMobile ? 900 : 1400;
+  const h = isMobile ? 600 : 900;
+  return `https://picsum.photos/seed/${seed}/${w}/${h}`;
 }
 
 function crossfadeBg(){
-  const seed = Date.now();
-  const q = randQuery();
-  const next = active==="A"?"B":"A";
+  const seed = Math.floor(Math.random()*100000);
+  const next = activeLayer==="A"?"B":"A";
   const el = next==="A"?bgA:bgB;
 
   el.classList.remove("visible");
-  el.style.backgroundImage = `url("${img(q,seed,'1200x800')}")`;
-  setTimeout(()=>el.classList.add("visible"),60);
+  el.style.backgroundImage = `url("${loremImage(seed)}")`;
 
-  const other = next==="A"?bgB:bgA;
-  other.classList.remove("visible");
-  active = next;
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=> el.classList.add("visible"));
+  });
+
+  const prev = next==="A"?bgB:bgA;
+  prev.classList.remove("visible");
+  activeLayer = next;
 }
 
 crossfadeBg();
-setInterval(crossfadeBg, 25000);
+setInterval(crossfadeBg, 20000);
 
-/* ========== CHAT LOGIC (UNCHANGED) ========== */
+/* ========== CHAT ========== */
 const sheet = document.getElementById("sheet");
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
