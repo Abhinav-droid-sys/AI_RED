@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify, render_template, render_template_string, send_from_directory
 from groq import Groq
-from datetime import datetime
 import os
 from dotenv import load_dotenv
+from datetime import datetime
+
 
 # Load environment variables from .env file
 load_dotenv()
