@@ -17,7 +17,7 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 # FIREBASE INIT (ADDED)
 # =========================
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase-admin-key.json")
+    cred = credentials.Certificate("Database_key.json")
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
