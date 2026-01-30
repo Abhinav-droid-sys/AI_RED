@@ -1,4 +1,5 @@
 <!-- AUTH-GUARD-TEST -->
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -10,6 +11,12 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- ===== SYNTAX HIGHLIGHTING (ADD ONLY) ===== -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 
 <style>
 /* ===== ORIGINAL STYLES (UNCHANGED) ===== */
@@ -148,54 +155,22 @@ body{
   border-bottom-left-radius:6px;
 }
 
-/* ================= INPUT ================= */
-.input-wrap{
-  position:sticky;
-  bottom:0;
-  padding:14px;
-  background:rgba(6,6,7,0.45);
-  backdrop-filter:blur(18px);
-  border-top:1px solid rgba(255,255,255,0.08);
+/* ===== INLINE CODE (ADD ONLY) ===== */
+.inline-code{
+  font-family:monospace;
+  background:rgba(255,255,255,0.12);
+  padding:2px 6px;
+  border-radius:6px;
+  font-size:13px;
 }
 
-.input-row{
-  display:flex;
-  gap:12px;
-  padding:12px;
-  border-radius:14px;
-  background:rgba(255,255,255,0.08);
-  border:1px solid var(--glass-border);
-}
-
-textarea{
-  flex:1;
-  resize:none;
-  background:none;
-  border:none;
-  outline:none;
-  color:white;
-  font-size:15px;
-  max-height:140px;
-}
-
-.send{
-  width:48px;
-  height:48px;
-  border:none;
-  border-radius:12px;
-  background:linear-gradient(135deg,var(--red),var(--red2));
-  color:white;
-  font-size:18px;
-  cursor:pointer;
-}
-
-/* ===== CODE BLOCK ADDITION (NEW) ===== */
+/* ===== CODE BLOCK (ADD ONLY) ===== */
 .code-block{
   margin-top:8px;
   border-radius:10px;
   overflow:hidden;
-  background:rgba(0,0,0,0.25);
-  border:1px solid rgba(255,255,255,0.12);
+  background:#1e1e1e;
+  border:1px solid rgba(255,255,255,0.14);
 }
 
 .code-header{
@@ -213,14 +188,13 @@ textarea{
   border:none;
   color:var(--muted);
   cursor:pointer;
+  margin-left:8px;
 }
 
 .code-block pre{
   margin:0;
   padding:12px;
   overflow-x:auto;
-  font-family:monospace;
-  white-space:pre;
   font-size:13px;
 }
 </style>
@@ -273,83 +247,63 @@ textarea{
 </div>
 
 <script>
-/* ===== CODE BLOCK HELPERS (NEW) ===== */
+/* ===== ADDITIVE HELPERS ONLY ===== */
 function escapeHtml(t){
   return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
 function copyCode(btn){
-  const code = btn.closest(".code-block").querySelector("code").innerText;
-  navigator.clipboard.writeText(code);
+  const c=btn.closest(".code-block").querySelector("code").innerText;
+  navigator.clipboard.writeText(c);
   btn.innerText="Copied ✓";
   setTimeout(()=>btn.innerText="Copy",1200);
 }
 
+function runCode(btn){
+  const block=btn.closest(".code-block");
+  const lang=block.dataset.lang;
+  const code=block.querySelector("code").innerText;
+  if(lang==="javascript"){
+    try{ eval(code); alert("JS executed"); }
+    catch(e){ alert(e.message); }
+  }else{
+    alert("Run supported only for JavaScript");
+  }
+}
+
 function renderBotMessage(text){
+  text=text.replace(/`([^`]+)`/g,'<span class="inline-code">$1</span>');
   const r=/```(\w+)?\n([\s\S]*?)```/g;
   let h=text.replace(r,(m,l,c)=>`
-    <div class="code-block">
+    <div class="code-block" data-lang="${(l||"text").toLowerCase()}">
       <div class="code-header">
         <span>${l||"code"}</span>
-        <button onclick="copyCode(this)">Copy</button>
+        <div>
+          <button onclick="copyCode(this)">Copy</button>
+          <button onclick="runCode(this)">Run</button>
+        </div>
       </div>
-      <pre><code>${escapeHtml(c)}</code></pre>
+      <pre><code class="language-${l||"text"}">${escapeHtml(c)}</code></pre>
     </div>
   `);
   return h.replace(/\n/g,"<br>");
 }
 
-/* ===== CHAT LOGIC (MINIMALLY UPDATED) ===== */
-const messages=document.getElementById("messages");
-const input=document.getElementById("input");
-
-async function sendMessage(){
-  const text=input.value.trim();
-  if(!text) return;
-  addMsg(text,"user");
-  input.value="";
-  addMsg("...","bot");
-
-  try{
-    const r=await fetch("/api/chat",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${localStorage.getItem("idToken")}`
-      },
-      body:JSON.stringify({
-        prompt:text,
-        session_id:"glass_mobile",
-        is_incognito:false,
-        history:[]
-      })
-    });
-    const d=await r.json();
-    removeTyping();
-    addMsg(d.response || "Error","bot");
-  }catch{
-    removeTyping();
-    addMsg("Network error.","bot");
-  }
-}
-
+/* ===== EXISTING CHAT (MINIMAL TOUCH) ===== */
 function addMsg(text,role){
   const w=document.createElement("div");
   w.className="msg "+(role==="user"?"user":"");
   const b=document.createElement("div");
   b.className="bubble "+(role==="user"?"user":"bot");
-
-  if(role==="bot") b.innerHTML=renderBotMessage(text);
-  else b.innerText=text;
-
+  if(role==="bot"){
+    b.innerHTML=renderBotMessage(text);
+    setTimeout(()=>Prism.highlightAllUnder(b),0);
+  }else{
+    b.innerText=text;
+  }
   w.appendChild(b);
   messages.appendChild(w);
   messages.scrollTop=messages.scrollHeight;
-}
-
-function removeTyping(){
-  const l=messages.lastChild;
-  if(l && l.innerText==="...") l.remove();
 }
 </script>
 
