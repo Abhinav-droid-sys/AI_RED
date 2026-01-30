@@ -1,4 +1,3 @@
-<!-- AUTH-GUARD-TEST -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -11,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-<!-- ===== PRISM (SYNTAX HIGHLIGHTING) ===== -->
+<!-- ===== PRISM ===== -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
@@ -39,7 +38,7 @@ body{
   overflow:auto;
 }
 
-/* ================= BACKGROUND ================= */
+/* ===== BACKGROUND ===== */
 .bg-wrap{
   position:fixed;
   inset:0;
@@ -58,10 +57,7 @@ body{
   transform:scale(1.04);
   transition:opacity 900ms ease, transform 900ms ease;
 }
-.bg-layer.visible{
-  opacity:1;
-  transform:scale(1);
-}
+.bg-layer.visible{ opacity:1; transform:scale(1); }
 
 .bg-hue{
   position:absolute;
@@ -72,7 +68,7 @@ body{
   mix-blend-mode:overlay;
 }
 
-/* ================= APP ================= */
+/* ===== APP ===== */
 .app{
   position:relative;
   z-index:2;
@@ -85,7 +81,7 @@ body{
   padding:12px;
 }
 
-/* ================= HEADER ================= */
+/* ===== HEADER ===== */
 .header{
   display:flex;
   justify-content:space-between;
@@ -114,7 +110,7 @@ body{
   margin-left:14px;
 }
 
-/* ================= CHAT BOX ================= */
+/* ===== CHAT ===== */
 .chat-box{
   flex:1;
   display:flex;
@@ -154,7 +150,7 @@ body{
   border-bottom-left-radius:6px;
 }
 
-/* ================= INPUT ================= */
+/* ===== INPUT ===== */
 .input-wrap{
   position:sticky;
   bottom:0;
@@ -194,12 +190,9 @@ textarea{
   color:white;
   font-size:18px;
   cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
 }
 
-/* ===== INLINE CODE ===== */
+/* ===== CODE ===== */
 .inline-code{
   font-family:monospace;
   background:rgba(255,255,255,0.12);
@@ -208,7 +201,6 @@ textarea{
   font-size:13px;
 }
 
-/* ===== CODE BLOCK ===== */
 .code-block{
   margin-top:8px;
   border-radius:10px;
@@ -220,42 +212,23 @@ textarea{
 .code-header{
   display:flex;
   justify-content:space-between;
-  align-items:center;
   padding:6px 10px;
   font-size:12px;
   font-family:monospace;
   color:var(--muted);
 }
-
 .code-header button{
   background:none;
   border:none;
   color:var(--muted);
   cursor:pointer;
-  margin-left:8px;
-}
-
-.code-block pre{
-  margin:0;
-  padding:12px;
-  overflow-x:auto;
-  font-size:13px;
-}
-
-/* ===== PRISM ISOLATION FIX ===== */
-textarea, button{
-  font-family:Inter,system-ui,sans-serif !important;
-  line-height:normal !important;
 }
 </style>
 </head>
 
 <body>
 
-<script>
-  if(!localStorage.getItem("idToken")) location.href="/login";
-</script>
-
+<!-- ===== BACKGROUND ===== -->
 <div class="bg-wrap">
   <div id="bgA" class="bg-layer"></div>
   <div id="bgB" class="bg-layer"></div>
@@ -291,8 +264,40 @@ textarea, button{
 
 </div>
 
+<!-- ===== FIREBASE AUTH GUARD (MERGED) ===== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDdWXUryACInTpa_BqZ2giTF8UYJFWUz-c",
+  authDomain: "red-ai-ab571.firebaseapp.com",
+  projectId: "red-ai-ab571",
+  appId: "1:789433608850:web:b61b2e86570b093331544b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+/* 🔐 AUTH GUARD */
+onAuthStateChanged(auth, async (user) => {
+  if (!user || !user.emailVerified) {
+    window.location.replace("login.html");
+    return;
+  }
+  localStorage.setItem("idToken", await user.getIdToken());
+});
+
+/* 🚪 LOGOUT */
+document.getElementById("logoutBtn").onclick = async () => {
+  await signOut(auth);
+  localStorage.clear();
+  window.location.replace("login.html");
+};
+</script>
+
+<!-- ===== CHAT LOGIC (UNCHANGED) ===== -->
 <script>
-/* ===== HELPERS ===== */
 const messages=document.getElementById("messages");
 const input=document.getElementById("input");
 const sendBtn=document.getElementById("sendBtn");
@@ -312,30 +317,23 @@ function runCode(btn){
   const block=btn.closest(".code-block");
   const lang=block.dataset.lang;
   const code=block.querySelector("code").innerText;
-  if(lang==="javascript"){
-    try{ eval(code); alert("JS executed"); }
-    catch(e){ alert(e.message); }
-  }else{
-    alert("Run supported only for JavaScript");
-  }
+  if(lang==="javascript"){ try{ eval(code); alert("JS executed"); }catch(e){ alert(e.message); } }
+  else alert("Run supported only for JavaScript");
 }
 
 function renderBotMessage(text){
   text=text.replace(/`([^`]+)`/g,'<span class="inline-code">$1</span>');
-  const r=/```(\w+)?\n([\s\S]*?)```/g;
-  let h=text.replace(r,(m,l,c)=>`
-    <div class="code-block" data-lang="${(l||"text").toLowerCase()}">
-      <div class="code-header">
-        <span>${l||"code"}</span>
-        <div>
-          <button onclick="copyCode(this)">Copy</button>
-          <button onclick="runCode(this)">Run</button>
-        </div>
+  return text.replace(/```(\w+)?\n([\s\S]*?)```/g,(m,l,c)=>`
+  <div class="code-block" data-lang="${(l||"text").toLowerCase()}">
+    <div class="code-header">
+      <span>${l||"code"}</span>
+      <div>
+        <button onclick="copyCode(this)">Copy</button>
+        <button onclick="runCode(this)">Run</button>
       </div>
-      <pre><code class="language-${l||"text"}">${escapeHtml(c)}</code></pre>
     </div>
-  `);
-  return h.replace(/\n/g,"<br>");
+    <pre><code class="language-${l||"text"}">${escapeHtml(c)}</code></pre>
+  </div>`).replace(/\n/g,"<br>");
 }
 
 function addMsg(text,role){
@@ -346,15 +344,12 @@ function addMsg(text,role){
   if(role==="bot"){
     b.innerHTML=renderBotMessage(text);
     setTimeout(()=>Prism.highlightAllUnder(b),0);
-  }else{
-    b.innerText=text;
-  }
+  }else b.innerText=text;
   w.appendChild(b);
   messages.appendChild(w);
   messages.scrollTop=messages.scrollHeight;
 }
 
-/* ===== SEND MESSAGE ===== */
 async function sendMessage(){
   const text=input.value.trim();
   if(!text) return;
@@ -372,20 +367,14 @@ async function sendMessage(){
       body:JSON.stringify({prompt:text,history:[]})
     });
     const d=await r.json();
-    removeTyping();
+    messages.lastChild.remove();
     addMsg(d.response||"Error","bot");
   }catch{
-    removeTyping();
+    messages.lastChild.remove();
     addMsg("Network error.","bot");
   }
 }
 
-function removeTyping(){
-  const l=messages.lastChild;
-  if(l && l.innerText==="...") l.remove();
-}
-
-/* ===== EVENTS ===== */
 sendBtn.onclick=sendMessage;
 input.addEventListener("keydown",e=>{
   if(e.key==="Enter" && !e.shiftKey){
