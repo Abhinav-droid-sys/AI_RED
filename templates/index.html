@@ -1,5 +1,4 @@
 <!-- AUTH-GUARD-TEST -->
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -12,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-<!-- ===== SYNTAX HIGHLIGHTING (ADD ONLY) ===== -->
+<!-- ===== PRISM (SYNTAX HIGHLIGHTING) ===== -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
@@ -155,7 +154,52 @@ body{
   border-bottom-left-radius:6px;
 }
 
-/* ===== INLINE CODE (ADD ONLY) ===== */
+/* ================= INPUT ================= */
+.input-wrap{
+  position:sticky;
+  bottom:0;
+  padding:14px;
+  background:rgba(6,6,7,0.45);
+  backdrop-filter:blur(18px);
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+
+.input-row{
+  display:flex;
+  gap:12px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid var(--glass-border);
+  align-items:center;
+}
+
+textarea{
+  flex:1;
+  resize:none;
+  background:none;
+  border:none;
+  outline:none;
+  color:white;
+  font-size:15px;
+  max-height:140px;
+}
+
+.send{
+  width:48px;
+  height:48px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg,var(--red),var(--red2));
+  color:white;
+  font-size:18px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ===== INLINE CODE ===== */
 .inline-code{
   font-family:monospace;
   background:rgba(255,255,255,0.12);
@@ -164,7 +208,7 @@ body{
   font-size:13px;
 }
 
-/* ===== CODE BLOCK (ADD ONLY) ===== */
+/* ===== CODE BLOCK ===== */
 .code-block{
   margin-top:8px;
   border-radius:10px;
@@ -197,14 +241,19 @@ body{
   overflow-x:auto;
   font-size:13px;
 }
+
+/* ===== PRISM ISOLATION FIX ===== */
+textarea, button{
+  font-family:Inter,system-ui,sans-serif !important;
+  line-height:normal !important;
+}
 </style>
 </head>
 
 <body>
 
 <script>
-  const idToken = localStorage.getItem("idToken");
-  if (!idToken) window.location.href = "/login";
+  if(!localStorage.getItem("idToken")) location.href="/login";
 </script>
 
 <div class="bg-wrap">
@@ -218,12 +267,8 @@ body{
 <div class="header">
   <div class="brand">RED</div>
   <div>
-    <button class="icon-btn" onclick="toggleSheet()">
-      <i class="fas fa-layer-group"></i>
-    </button>
-    <button class="icon-btn" id="logoutBtn">
-      <i class="fas fa-right-from-bracket"></i>
-    </button>
+    <button class="icon-btn"><i class="fas fa-layer-group"></i></button>
+    <button class="icon-btn" id="logoutBtn"><i class="fas fa-right-from-bracket"></i></button>
   </div>
 </div>
 
@@ -237,7 +282,7 @@ body{
   <div class="input-wrap">
     <div class="input-row">
       <textarea id="input" rows="1" placeholder="Ask RED..."></textarea>
-      <button class="send" onclick="sendMessage()">
+      <button class="send" id="sendBtn">
         <i class="fas fa-paper-plane"></i>
       </button>
     </div>
@@ -247,7 +292,11 @@ body{
 </div>
 
 <script>
-/* ===== ADDITIVE HELPERS ONLY ===== */
+/* ===== HELPERS ===== */
+const messages=document.getElementById("messages");
+const input=document.getElementById("input");
+const sendBtn=document.getElementById("sendBtn");
+
 function escapeHtml(t){
   return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
@@ -289,7 +338,6 @@ function renderBotMessage(text){
   return h.replace(/\n/g,"<br>");
 }
 
-/* ===== EXISTING CHAT (MINIMAL TOUCH) ===== */
 function addMsg(text,role){
   const w=document.createElement("div");
   w.className="msg "+(role==="user"?"user":"");
@@ -305,6 +353,46 @@ function addMsg(text,role){
   messages.appendChild(w);
   messages.scrollTop=messages.scrollHeight;
 }
+
+/* ===== SEND MESSAGE ===== */
+async function sendMessage(){
+  const text=input.value.trim();
+  if(!text) return;
+  addMsg(text,"user");
+  input.value="";
+  addMsg("...","bot");
+
+  try{
+    const r=await fetch("/api/chat",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${localStorage.getItem("idToken")}`
+      },
+      body:JSON.stringify({prompt:text,history:[]})
+    });
+    const d=await r.json();
+    removeTyping();
+    addMsg(d.response||"Error","bot");
+  }catch{
+    removeTyping();
+    addMsg("Network error.","bot");
+  }
+}
+
+function removeTyping(){
+  const l=messages.lastChild;
+  if(l && l.innerText==="...") l.remove();
+}
+
+/* ===== EVENTS ===== */
+sendBtn.onclick=sendMessage;
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
 </script>
 
 </body>
