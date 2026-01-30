@@ -1,5 +1,4 @@
 <!-- AUTH-GUARD-TEST -->
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -189,20 +188,51 @@ textarea{
   font-size:18px;
   cursor:pointer;
 }
+
+/* ===== CODE BLOCK ADDITION (NEW) ===== */
+.code-block{
+  margin-top:8px;
+  border-radius:10px;
+  overflow:hidden;
+  background:rgba(0,0,0,0.25);
+  border:1px solid rgba(255,255,255,0.12);
+}
+
+.code-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:6px 10px;
+  font-size:12px;
+  font-family:monospace;
+  color:var(--muted);
+}
+
+.code-header button{
+  background:none;
+  border:none;
+  color:var(--muted);
+  cursor:pointer;
+}
+
+.code-block pre{
+  margin:0;
+  padding:12px;
+  overflow-x:auto;
+  font-family:monospace;
+  white-space:pre;
+  font-size:13px;
+}
 </style>
 </head>
 
 <body>
 
-<!-- ===== STEP 1: AUTH GUARD ===== -->
 <script>
   const idToken = localStorage.getItem("idToken");
-  if (!idToken) {
-    window.location.href = "/login";
-  }
+  if (!idToken) window.location.href = "/login";
 </script>
 
-<!-- BACKGROUND -->
 <div class="bg-wrap">
   <div id="bgA" class="bg-layer"></div>
   <div id="bgB" class="bg-layer"></div>
@@ -211,114 +241,81 @@ textarea{
 
 <div class="app">
 
-  <div class="header">
-    <div class="brand">RED</div>
+<div class="header">
+  <div class="brand">RED</div>
+  <div>
+    <button class="icon-btn" onclick="toggleSheet()">
+      <i class="fas fa-layer-group"></i>
+    </button>
+    <button class="icon-btn" id="logoutBtn">
+      <i class="fas fa-right-from-bracket"></i>
+    </button>
+  </div>
+</div>
 
-    <div>
-      <!-- EXISTING BUTTON -->
-      <button class="icon-btn" onclick="toggleSheet()">
-        <i class="fas fa-layer-group"></i>
-      </button>
-
-      <!-- ✅ NEW: LOGOUT BUTTON (MINIMAL) -->
-      <button class="icon-btn" id="logoutBtn" title="Logout">
-        <i class="fas fa-right-from-bracket"></i>
-      </button>
+<div class="chat-box">
+  <div class="messages" id="messages">
+    <div class="msg">
+      <div class="bubble bot">🔥 Welcome to RED. Ask me anything.</div>
     </div>
   </div>
 
-  <div class="chat-box">
-    <div class="messages" id="messages">
-      <div class="msg">
-        <div class="bubble bot">🔥 Welcome to RED. Ask me anything.</div>
-      </div>
-    </div>
-
-    <div class="input-wrap">
-      <div class="input-row">
-        <textarea id="input" rows="1" placeholder="Ask RED..."></textarea>
-        <button class="send" onclick="sendMessage()">
-          <i class="fas fa-paper-plane"></i>
-        </button>
-      </div>
+  <div class="input-wrap">
+    <div class="input-row">
+      <textarea id="input" rows="1" placeholder="Ask RED..."></textarea>
+      <button class="send" onclick="sendMessage()">
+        <i class="fas fa-paper-plane"></i>
+      </button>
     </div>
   </div>
+</div>
 
 </div>
 
-<!-- ===== FIREBASE LOGOUT (ONLY ADDITION) ===== -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDdWXUryACInTpa_BqZ2giTF8UYJFWUz-c",
-  authDomain: "red-ai-ab571.firebaseapp.com",
-  projectId: "red-ai-ab571",
-  appId: "1:789433608850:web:b61b2e86570b093331544b"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-document.getElementById("logoutBtn").onclick = async () => {
-  await signOut(auth);
-  localStorage.removeItem("idToken");
-  window.location.href = "/login";
-};
-</script>
-
 <script>
-/* ========== BACKGROUND SHUFFLE (UNCHANGED) ========== */
-const bgA = document.getElementById("bgA");
-const bgB = document.getElementById("bgB");
-let activeLayer = "A";
-
-function loremImage(seed){
-  const isMobile = window.innerWidth < 600;
-  const w = isMobile ? 900 : 1400;
-  const h = isMobile ? 600 : 900;
-  return `https://picsum.photos/seed/${seed}/${w}/${h}`;
+/* ===== CODE BLOCK HELPERS (NEW) ===== */
+function escapeHtml(t){
+  return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-function crossfadeBg(){
-  const seed = Math.floor(Math.random()*100000);
-  const next = activeLayer==="A"?"B":"A";
-  const el = next==="A"?bgA:bgB;
-
-  el.classList.remove("visible");
-  el.style.backgroundImage = `url("${loremImage(seed)}")`;
-
-  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add("visible")));
-
-  const prev = next==="A"?bgB:bgA;
-  prev.classList.remove("visible");
-  activeLayer = next;
+function copyCode(btn){
+  const code = btn.closest(".code-block").querySelector("code").innerText;
+  navigator.clipboard.writeText(code);
+  btn.innerText="Copied ✓";
+  setTimeout(()=>btn.innerText="Copy",1200);
 }
 
-crossfadeBg();
-setInterval(crossfadeBg, 20000);
+function renderBotMessage(text){
+  const r=/```(\w+)?\n([\s\S]*?)```/g;
+  let h=text.replace(r,(m,l,c)=>`
+    <div class="code-block">
+      <div class="code-header">
+        <span>${l||"code"}</span>
+        <button onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code>${escapeHtml(c)}</code></pre>
+    </div>
+  `);
+  return h.replace(/\n/g,"<br>");
+}
 
-/* ========== CHAT (UNCHANGED) ========== */
-const messages = document.getElementById("messages");
-const input = document.getElementById("input");
+/* ===== CHAT LOGIC (MINIMALLY UPDATED) ===== */
+const messages=document.getElementById("messages");
+const input=document.getElementById("input");
 
 async function sendMessage(){
-  const text = input.value.trim();
+  const text=input.value.trim();
   if(!text) return;
-
   addMsg(text,"user");
   input.value="";
   addMsg("...","bot");
 
   try{
-    const token = localStorage.getItem("idToken");
-
-    const r = await fetch("/api/chat",{
+    const r=await fetch("/api/chat",{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        "Authorization":`Bearer ${token}`
+        "Authorization":`Bearer ${localStorage.getItem("idToken")}`
       },
       body:JSON.stringify({
         prompt:text,
@@ -327,11 +324,9 @@ async function sendMessage(){
         history:[]
       })
     });
-
-    const d = await r.json();
+    const d=await r.json();
     removeTyping();
     addMsg(d.response || "Error","bot");
-
   }catch{
     removeTyping();
     addMsg("Network error.","bot");
@@ -343,15 +338,18 @@ function addMsg(text,role){
   w.className="msg "+(role==="user"?"user":"");
   const b=document.createElement("div");
   b.className="bubble "+(role==="user"?"user":"bot");
-  b.innerText=text;
+
+  if(role==="bot") b.innerHTML=renderBotMessage(text);
+  else b.innerText=text;
+
   w.appendChild(b);
   messages.appendChild(w);
   messages.scrollTop=messages.scrollHeight;
 }
 
 function removeTyping(){
-  const last=messages.lastChild;
-  if(last && last.innerText==="...") last.remove();
+  const l=messages.lastChild;
+  if(l && l.innerText==="...") l.remove();
 }
 </script>
 
