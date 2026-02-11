@@ -207,6 +207,7 @@ html,body{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 import {
     getAuth,
+    onAuthStateChanged,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     sendEmailVerification,
@@ -231,6 +232,18 @@ const btnText = document.getElementById("btnText");
 const switchMode = document.getElementById("switchMode");
 const modeTitle = document.getElementById("modeTitle");
 const errorBox = document.getElementById("errorBox");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const loginBtn = document.getElementById("loginBtn");
+const googleBtn = document.getElementById("googleBtn");
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user || !user.emailVerified) return;
+    localStorage.setItem("idToken", await user.getIdToken());
+    localStorage.setItem("userId", user.uid);
+    localStorage.setItem("userEmail", user.email || "");
+    window.location.replace("/");
+});
 
 switchMode.onclick = () => {
     isSignup = !isSignup;
@@ -249,7 +262,7 @@ switchMode.onclick = () => {
 loginBtn.onclick = async () => {
     try {
         if (isSignup) {
-            const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
+            const cred = await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
             await sendEmailVerification(cred.user);
             errorBox.textContent = "Verification email sent. Verify and log in.";
             errorBox.style.display = "block";
@@ -257,7 +270,7 @@ loginBtn.onclick = async () => {
             return;
         }
 
-        const cred = await signInWithEmailAndPassword(auth, email.value, password.value);
+        const cred = await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
         if (!cred.user.emailVerified) {
             errorBox.textContent = "Please verify your email first.";
             errorBox.style.display = "block";
@@ -266,6 +279,8 @@ loginBtn.onclick = async () => {
         }
 
         localStorage.setItem("idToken", await cred.user.getIdToken());
+        localStorage.setItem("userId", cred.user.uid);
+        localStorage.setItem("userEmail", cred.user.email || "");
         window.location.href = "/";
     } catch (err) {
         errorBox.textContent = err.message;
@@ -274,10 +289,17 @@ loginBtn.onclick = async () => {
 };
 
 googleBtn.onclick = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    localStorage.setItem("idToken", await result.user.getIdToken());
-    window.location.href = "/";
+    try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        localStorage.setItem("idToken", await result.user.getIdToken());
+        localStorage.setItem("userId", result.user.uid);
+        localStorage.setItem("userEmail", result.user.email || "");
+        window.location.href = "/";
+    } catch (err) {
+        errorBox.textContent = err.message || "Google sign-in failed.";
+        errorBox.style.display = "block";
+    }
 };
 </script>
 

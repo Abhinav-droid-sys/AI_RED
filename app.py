@@ -43,8 +43,32 @@ SYSTEM_PROMPT = (
 # IN-MEMORY CHAT STORAGE
 # =========================
 
-chat_histories = {}  # { session_id: [ {role, content}, ... ] }
-chat_titles = {}     # { session_id: "Title" }
+chat_histories = {}  # { user::session_id: [ {role, content}, ... ] }
+chat_titles = {}     # { user::session_id: "Title" }
+chat_meta = {}       # { user::session_id: {id, user_id, created_at, updated_at} }
+
+
+def chat_key(user_id: str, session_id: str) -> str:
+    return f"{user_id}::{session_id}"
+
+
+def now_utc_iso() -> str:
+    return datetime.utcnow().isoformat() + "Z"
+
+
+def request_user_id() -> str:
+    user_id = (request.headers.get("X-User-Id") or "anonymous").strip()
+    return user_id if user_id else "anonymous"
+
+
+def history_preview(history: list) -> str:
+    if not history:
+        return ""
+    for msg in reversed(history):
+        content = (msg.get("content") or "").strip()
+        if content:
+            return content[:90]
+    return ""
 
 def generate_chat_title(first_message: str) -> str:
     """Generate a short title for the chat based on first user message."""
@@ -147,7 +171,9 @@ def chat():
     try:
         data = request.get_json(force=True)
         prompt = data.get("prompt", "").strip()
-        session_id = data.get("session_id", "default")
+        session_id = (data.get("session_id", "default") or "default").strip()
+        user_id = request_user_id()
+        store_key = chat_key(user_id, session_id)
         is_incognito = bool(data.get("is_incognito", False))
         incognito_history = data.get("history", []) or []
 
@@ -164,8 +190,8 @@ def chat():
                 if content:
                     messages.append({"role": role, "content": content})
         else:
-            if session_id in chat_histories:
-                for msg in chat_histories[session_id]:
+            if store_key in chat_histories:
+                for msg in chat_histories[store_key]:
                     role = "user" if msg["role"] == "user" else "assistant"
                     messages.append({"role": role, "content": msg["content"]})
 
@@ -185,17 +211,25 @@ def chat():
         chat_title = None
 
         if not is_incognito:
-            is_first_message = session_id not in chat_histories
+            is_first_message = store_key not in chat_histories
+            timestamp = now_utc_iso()
 
-            if session_id not in chat_histories:
-                chat_histories[session_id] = []
+            if store_key not in chat_histories:
+                chat_histories[store_key] = []
+                chat_meta[store_key] = {
+                    "id": session_id,
+                    "user_id": user_id,
+                    "created_at": timestamp,
+                    "updated_at": timestamp,
+                }
 
-            chat_histories[session_id].append({"role": "user", "content": prompt})
-            chat_histories[session_id].append({"role": "assistant", "content": assistant_text})
+            chat_histories[store_key].append({"role": "user", "content": prompt})
+            chat_histories[store_key].append({"role": "assistant", "content": assistant_text})
+            chat_meta[store_key]["updated_at"] = timestamp
 
             if is_first_message:
                 chat_title = generate_chat_title(prompt)
-                chat_titles[session_id] = chat_title
+                chat_titles[store_key] = chat_title
 
         return jsonify({"success": True, "response": assistant_text, "chat_title": chat_title})
 
@@ -211,9 +245,22 @@ def chat():
 @app.route("/api/chats", methods=["GET"])
 def get_chats():
     """Return list of all named chat sessions for sidebar."""
+    user_id = request_user_id()
     chats = []
-    for session_id, title in chat_titles.items():
-        chats.append({"id": session_id, "title": title or "New Chat"})
+    for store_key, meta in chat_meta.items():
+        if meta.get("user_id") != user_id:
+            continue
+        history = chat_histories.get(store_key, [])
+        chats.append(
+            {
+                "id": meta.get("id"),
+                "title": chat_titles.get(store_key, "New Chat") or "New Chat",
+                "updated_at": meta.get("updated_at"),
+                "created_at": meta.get("created_at"),
+                "preview": history_preview(history),
+            }
+        )
+    chats.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
     return jsonify({"success": True, "chats": chats})
 
 
@@ -222,8 +269,12 @@ def get_chat_history():
     """Return full history for a session_id."""
     try:
         data = request.get_json(force=True)
-        session_id = data.get("session_id")
-        history = chat_histories.get(session_id, [])
+        session_id = (data.get("session_id") or "").strip()
+        if not session_id:
+            return jsonify({"success": False, "error": "session_id is required"}), 400
+        user_id = request_user_id()
+        store_key = chat_key(user_id, session_id)
+        history = chat_histories.get(store_key, [])
         return jsonify({"success": True, "history": history})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -234,14 +285,35 @@ def delete_chat():
     """Delete a stored chat session."""
     try:
         data = request.get_json(force=True)
-        session_id = data.get("session_id")
+        session_id = (data.get("session_id") or "").strip()
+        if not session_id:
+            return jsonify({"success": False, "error": "session_id is required"}), 400
+        user_id = request_user_id()
+        store_key = chat_key(user_id, session_id)
 
-        if session_id in chat_titles:
-            del chat_titles[session_id]
-        if session_id in chat_histories:
-            del chat_histories[session_id]
+        if store_key in chat_titles:
+            del chat_titles[store_key]
+        if store_key in chat_histories:
+            del chat_histories[store_key]
+        if store_key in chat_meta:
+            del chat_meta[store_key]
 
         return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/chats/clear", methods=["POST"])
+def clear_chats():
+    """Delete all stored chat sessions for current user."""
+    try:
+        user_id = request_user_id()
+        user_keys = [k for k, meta in chat_meta.items() if meta.get("user_id") == user_id]
+        for store_key in user_keys:
+            chat_meta.pop(store_key, None)
+            chat_titles.pop(store_key, None)
+            chat_histories.pop(store_key, None)
+        return jsonify({"success": True, "deleted": len(user_keys)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

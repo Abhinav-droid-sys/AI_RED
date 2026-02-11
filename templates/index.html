@@ -110,6 +110,127 @@ body{
   margin-left:14px;
 }
 
+.history-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(5,5,6,0.62);
+  backdrop-filter:blur(2px);
+  z-index:40;
+  display:none;
+}
+.history-overlay.open{ display:block; }
+
+.history-panel{
+  position:fixed;
+  top:0;
+  right:-360px;
+  width:min(360px,92vw);
+  height:100dvh;
+  z-index:50;
+  background:rgba(10,10,12,0.94);
+  border-left:1px solid rgba(255,255,255,0.14);
+  backdrop-filter:blur(20px) saturate(1.2);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  transition:right 220ms ease;
+}
+.history-panel.open{ right:0; }
+
+.history-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.history-title{
+  font-size:16px;
+  font-weight:700;
+}
+
+.history-actions{
+  display:flex;
+  gap:8px;
+}
+
+.history-btn{
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.06);
+  color:white;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.history-list{
+  margin:0;
+  padding:0;
+  list-style:none;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.history-item{
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.06);
+  border-radius:12px;
+  padding:10px;
+  cursor:pointer;
+}
+
+.history-item.active{
+  border-color:rgba(255,107,107,0.75);
+  box-shadow:0 0 0 1px rgba(255,107,107,0.25) inset;
+}
+
+.history-row{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.history-item-title{
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.history-preview{
+  margin-top:6px;
+  font-size:12px;
+  color:#c7c7d1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.history-time{
+  font-size:11px;
+  color:#9B9BA6;
+}
+
+.history-del{
+  background:none;
+  border:none;
+  color:#ff9a9a;
+  cursor:pointer;
+  padding:0;
+  font-size:13px;
+}
+
+.history-empty{
+  color:#9B9BA6;
+  font-size:13px;
+  text-align:center;
+  padding:26px 12px;
+}
+
 /* ===== CHAT ===== */
 .chat-box{
   flex:1;
@@ -134,7 +255,7 @@ body{
 .msg{ display:flex; max-width:85%; }
 .msg.user{ align-self:flex-end; }
 
-.bubble{
+.bubble{ 
   padding:12px 16px;
   border-radius:16px;
   line-height:1.45;
@@ -240,7 +361,7 @@ textarea{
 <div class="header">
   <div class="brand">RED</div>
   <div>
-    <button class="icon-btn"><i class="fas fa-layer-group"></i></button>
+    <button class="icon-btn" id="historyBtn"><i class="fas fa-layer-group"></i></button>
     <button class="icon-btn" id="logoutBtn"><i class="fas fa-right-from-bracket"></i></button>
   </div>
 </div>
@@ -264,6 +385,19 @@ textarea{
 
 </div>
 
+<div class="history-overlay" id="historyOverlay"></div>
+<aside class="history-panel" id="historyPanel">
+  <div class="history-head">
+    <div class="history-title">Chat History</div>
+    <div class="history-actions">
+      <button class="history-btn" id="newChatBtn">New</button>
+      <button class="history-btn" id="clearChatsBtn">Clear</button>
+      <button class="history-btn" id="closeHistoryBtn">Close</button>
+    </div>
+  </div>
+  <ul class="history-list" id="historyList"></ul>
+</aside>
+
 <!-- ===== FIREBASE AUTH GUARD (MERGED) ===== -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
@@ -286,6 +420,8 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   localStorage.setItem("idToken", await user.getIdToken());
+  localStorage.setItem("userId", user.uid);
+  localStorage.setItem("userEmail", user.email || "");
 });
 
 /* 🚪 LOGOUT */
@@ -301,9 +437,40 @@ document.getElementById("logoutBtn").onclick = async () => {
 const messages=document.getElementById("messages");
 const input=document.getElementById("input");
 const sendBtn=document.getElementById("sendBtn");
+const historyBtn=document.getElementById("historyBtn");
+const historyOverlay=document.getElementById("historyOverlay");
+const historyPanel=document.getElementById("historyPanel");
+const historyList=document.getElementById("historyList");
+const closeHistoryBtn=document.getElementById("closeHistoryBtn");
+const newChatBtn=document.getElementById("newChatBtn");
+const clearChatsBtn=document.getElementById("clearChatsBtn");
+
+let activeSessionId=localStorage.getItem("activeSessionId")||"";
+let chatCache=[];
+
+function createSessionId(){
+  return `chat_${Date.now()}`;
+}
+
+function getUserId(){
+  return localStorage.getItem("userId") || "anonymous";
+}
+
+function authHeaders(){
+  return {
+    "Content-Type":"application/json",
+    "Authorization":`Bearer ${localStorage.getItem("idToken") || ""}`,
+    "X-User-Id":getUserId()
+  };
+}
+
+function setActiveSession(sessionId){
+  activeSessionId=sessionId;
+  localStorage.setItem("activeSessionId",sessionId);
+}
 
 function escapeHtml(t){
-  return t.replakejce(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return (t || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
 function copyCode(btn){
@@ -350,9 +517,102 @@ function addMsg(text,role){
   messages.scrollTop=messages.scrollHeight;
 }
 
+function renderWelcome(){
+  messages.innerHTML='';
+  addMsg("🔥 Welcome to RED. Ask me anything.","bot");
+}
+
+function formatTime(iso){
+  if(!iso) return "";
+  const d=new Date(iso);
+  if(Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString([], {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
+}
+
+function openHistory(){
+  historyOverlay.classList.add("open");
+  historyPanel.classList.add("open");
+}
+
+function closeHistory(){
+  historyOverlay.classList.remove("open");
+  historyPanel.classList.remove("open");
+}
+
+async function loadHistoryList(){
+  try{
+    const r=await fetch("/api/chats",{headers:{"X-User-Id":getUserId()}});
+    const d=await r.json();
+    chatCache=(d.chats || []);
+    renderHistoryList(chatCache);
+  }catch{
+    historyList.innerHTML='<li class="history-empty">Unable to load history.</li>';
+  }
+}
+
+function renderHistoryList(chats){
+  if(!chats.length){
+    historyList.innerHTML='<li class="history-empty">No chats yet.</li>';
+    return;
+  }
+  historyList.innerHTML=chats.map(chat=>`
+    <li class="history-item ${chat.id===activeSessionId?"active":""}" data-id="${chat.id}">
+      <div class="history-row">
+        <div class="history-item-title">${escapeHtml(chat.title || "New Chat")}</div>
+        <button class="history-del" data-del="${chat.id}" title="Delete chat"><i class="fas fa-trash"></i></button>
+      </div>
+      <div class="history-preview">${escapeHtml(chat.preview || "No messages yet")}</div>
+      <div class="history-time">${escapeHtml(formatTime(chat.updated_at))}</div>
+    </li>
+  `).join("");
+}
+
+async function loadSession(sessionId){
+  try{
+    const r=await fetch("/api/chat/history",{
+      method:"POST",
+      headers:authHeaders(),
+      body:JSON.stringify({session_id:sessionId})
+    });
+    const d=await r.json();
+    const history=d.history || [];
+    messages.innerHTML='';
+    if(!history.length){
+      renderWelcome();
+    }else{
+      history.forEach(msg=>addMsg(msg.content,msg.role));
+    }
+    setActiveSession(sessionId);
+    renderHistoryList(chatCache);
+    closeHistory();
+  }catch{
+    addMsg("Failed to load chat history.","bot");
+  }
+}
+
+async function deleteSession(sessionId){
+  await fetch("/api/chat/delete",{
+    method:"POST",
+    headers:authHeaders(),
+    body:JSON.stringify({session_id:sessionId})
+  });
+  if(activeSessionId===sessionId){
+    startNewChat();
+  }
+  await loadHistoryList();
+}
+
+function startNewChat(){
+  setActiveSession(createSessionId());
+  renderWelcome();
+}
+
 async function sendMessage(){
   const text=input.value.trim();
   if(!text) return;
+  if(!activeSessionId){
+    setActiveSession(createSessionId());
+  }
   addMsg(text,"user");
   input.value="";
   addMsg("...","bot");
@@ -360,15 +620,13 @@ async function sendMessage(){
   try{
     const r=await fetch("/api/chat",{
       method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${localStorage.getItem("idToken")}`
-      },
-      body:JSON.stringify({prompt:text,history:[]})
+      headers:authHeaders(),
+      body:JSON.stringify({prompt:text,history:[],session_id:activeSessionId})
     });
     const d=await r.json();
     messages.lastChild.remove();
     addMsg(d.response||"Error","bot");
+    await loadHistoryList();
   }catch{
     messages.lastChild.remove();
     addMsg("Network error.","bot");
@@ -382,6 +640,46 @@ input.addEventListener("keydown",e=>{
     sendMessage();
   }
 });
+
+historyBtn.onclick=async ()=>{
+  openHistory();
+  await loadHistoryList();
+};
+closeHistoryBtn.onclick=closeHistory;
+historyOverlay.onclick=closeHistory;
+newChatBtn.onclick=()=>{
+  startNewChat();
+  closeHistory();
+};
+clearChatsBtn.onclick=async ()=>{
+  await fetch("/api/chats/clear",{
+    method:"POST",
+    headers:authHeaders()
+  });
+  startNewChat();
+  await loadHistoryList();
+};
+
+historyList.addEventListener("click",async (e)=>{
+  const delBtn=e.target.closest("[data-del]");
+  if(delBtn){
+    await deleteSession(delBtn.dataset.del);
+    return;
+  }
+  const item=e.target.closest("[data-id]");
+  if(item){
+    await loadSession(item.dataset.id);
+  }
+});
+
+(async ()=>{
+  if(!activeSessionId){
+    startNewChat();
+  }else{
+    await loadSession(activeSessionId);
+  }
+  await loadHistoryList();
+})();
 </script>
 
 </body>
