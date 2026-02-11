@@ -248,9 +248,9 @@ def delete_chat():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🚀 RED AI Assistant - Powered by Groq")
+    print("🚀 RED AI Assistant ")
     print("🤖 Persona: RED (named after the red, high-energy UI)")
     print("=" * 60)
-    print(f"✅ Groq API Key Loaded: {GROQ_API_KEY[:10]}...***")
+    print(f"✅ Groq API Key Loaded: {GROQ_API_KEY[:9]}...***")
     print("=" * 60)
     app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT", 5000)))

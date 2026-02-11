@@ -282,7 +282,7 @@ const auth = getAuth(app);
 /* 🔐 AUTH GUARD */
 onAuthStateChanged(auth, async (user) => {
   if (!user || !user.emailVerified) {
-    window.location.replace("login.html");
+    window.location.replace("/login");
     return;
   }
   localStorage.setItem("idToken", await user.getIdToken());
@@ -292,7 +292,7 @@ onAuthStateChanged(auth, async (user) => {
 document.getElementById("logoutBtn").onclick = async () => {
   await signOut(auth);
   localStorage.clear();
-  window.location.replace("login.html");
+  window.location.replace("/login");
 };
 </script>
 
@@ -303,7 +303,7 @@ const input=document.getElementById("input");
 const sendBtn=document.getElementById("sendBtn");
 
 function escapeHtml(t){
-  return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return t.replakejce(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
 function copyCode(btn){
