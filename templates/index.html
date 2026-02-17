@@ -32,7 +32,7 @@ html,body{ height:100%; }
 body{
   margin:0;
   font-family:Inter,system-ui,sans-serif;
-  background:var(--bg);
+  background:#000;
   color:white;
   overflow:auto;
 }
@@ -61,10 +61,7 @@ body{
 .bg-hue{
   position:absolute;
   inset:0;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(255,59,48,0.12), transparent 45%),
-    linear-gradient(180deg, rgba(10,10,11,0.4), rgba(10,10,11,0.85));
-  mix-blend-mode:overlay;
+  background:linear-gradient(180deg, rgba(6,6,7,0.18), rgba(6,6,7,0.66));
 }
 
 /* ===== APP ===== */
@@ -471,6 +468,8 @@ document.getElementById("logoutBtn").onclick = async () => {
 <!-- ===== CHAT LOGIC (UNCHANGED) ===== -->
 <script>
 const messages=document.getElementById("messages");
+const bgA=document.getElementById("bgA");
+const bgB=document.getElementById("bgB");
 const input=document.getElementById("input");
 const sendBtn=document.getElementById("sendBtn");
 const historyBtn=document.getElementById("historyBtn");
@@ -483,6 +482,49 @@ const clearChatsBtn=document.getElementById("clearChatsBtn");
 
 let activeSessionId=localStorage.getItem("activeSessionId")||"";
 let chatCache=[];
+let activeBgLayer="A";
+let sessionBackgroundMap=JSON.parse(localStorage.getItem("sessionBackgroundMap") || "{}");
+let lastBgIndex=Number(localStorage.getItem("lastBgIndex") || "-1");
+
+const STOCK_BACKGROUNDS=[
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1920&q=80",
+  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1920&q=80"
+];
+
+function chooseNextBackgroundIndex(){
+  if(STOCK_BACKGROUNDS.length<=1) return 0;
+  let next=Math.floor(Math.random()*STOCK_BACKGROUNDS.length);
+  while(next===lastBgIndex){
+    next=Math.floor(Math.random()*STOCK_BACKGROUNDS.length);
+  }
+  lastBgIndex=next;
+  localStorage.setItem("lastBgIndex",String(next));
+  return next;
+}
+
+function getSessionBackground(sessionId){
+  if(!sessionId) return STOCK_BACKGROUNDS[0];
+  if(!sessionBackgroundMap[sessionId]){
+    const idx=chooseNextBackgroundIndex();
+    sessionBackgroundMap[sessionId]=STOCK_BACKGROUNDS[idx];
+    localStorage.setItem("sessionBackgroundMap",JSON.stringify(sessionBackgroundMap));
+  }
+  return sessionBackgroundMap[sessionId];
+}
+
+function applySessionBackground(sessionId){
+  const nextUrl=getSessionBackground(sessionId);
+  const incoming=activeBgLayer==="A" ? bgB : bgA;
+  const outgoing=activeBgLayer==="A" ? bgA : bgB;
+  incoming.style.backgroundImage=`url("${nextUrl}")`;
+  incoming.classList.add("visible");
+  outgoing.classList.remove("visible");
+  activeBgLayer=activeBgLayer==="A" ? "B" : "A";
+}
 
 function createSessionId(){
   return `chat_${Date.now()}`;
@@ -501,8 +543,13 @@ function authHeaders(){
 }
 
 function setActiveSession(sessionId){
+  const isChanged=activeSessionId!==sessionId;
   activeSessionId=sessionId;
   localStorage.setItem("activeSessionId",sessionId);
+  const hasVisibleBg=bgA.classList.contains("visible") || bgB.classList.contains("visible");
+  if(isChanged || !hasVisibleBg){
+    applySessionBackground(sessionId);
+  }
 }
 
 function escapeHtml(t){
@@ -639,6 +686,10 @@ async function deleteSession(sessionId){
     headers:authHeaders(),
     body:JSON.stringify({session_id:sessionId})
   });
+  if(sessionBackgroundMap[sessionId]){
+    delete sessionBackgroundMap[sessionId];
+    localStorage.setItem("sessionBackgroundMap",JSON.stringify(sessionBackgroundMap));
+  }
   if(activeSessionId===sessionId){
     startNewChat();
   }
@@ -699,6 +750,8 @@ clearChatsBtn.onclick=async ()=>{
     method:"POST",
     headers:authHeaders()
   });
+  sessionBackgroundMap={};
+  localStorage.setItem("sessionBackgroundMap","{}");
   startNewChat();
   await loadHistoryList();
 };
@@ -719,6 +772,7 @@ historyList.addEventListener("click",async (e)=>{
   if(!activeSessionId){
     startNewChat();
   }else{
+    applySessionBackground(activeSessionId);
     await loadSession(activeSessionId);
   }
   await loadHistoryList();
