@@ -311,6 +311,93 @@ body{
   box-shadow:0 10px 24px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
+.bubble.bot h2,
+.bubble.bot h3,
+.bubble.bot h4{
+  margin:14px 0 8px;
+  line-height:1.25;
+  letter-spacing:-0.02em;
+  font-weight:800;
+}
+
+.bubble.bot h2{
+  font-size:30px;
+}
+
+.bubble.bot h3{
+  font-size:23px;
+}
+
+.bubble.bot h4{
+  font-size:18px;
+}
+
+.bubble.bot p{
+  margin:0 0 12px;
+  color:#f0f0f6;
+}
+
+.bubble.bot ul,
+.bubble.bot ol{
+  margin:4px 0 12px 22px;
+  padding:0;
+}
+
+.bubble.bot li{
+  margin:5px 0;
+  padding-left:2px;
+}
+
+.bubble.bot strong{
+  font-weight:800;
+}
+
+.bubble.bot .msg-sep{
+  border:none;
+  border-top:1px solid rgba(255,255,255,0.2);
+  margin:14px 0;
+}
+
+.bubble.bot blockquote{
+  margin:10px 0 14px;
+  padding:10px 12px;
+  border-left:3px solid rgba(255,107,107,0.75);
+  background:rgba(255,255,255,0.06);
+  border-radius:10px;
+  color:#e6e6f0;
+}
+
+.bubble.bot .table-wrap{
+  margin:10px 0 14px;
+  overflow:auto;
+  border:1px solid rgba(255,255,255,0.16);
+  border-radius:12px;
+  background:rgba(11,13,18,0.72);
+}
+
+.bubble.bot table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:420px;
+}
+
+.bubble.bot th,
+.bubble.bot td{
+  text-align:left;
+  padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+  font-size:14px;
+}
+
+.bubble.bot th{
+  font-weight:700;
+  background:rgba(255,255,255,0.06);
+}
+
+.bubble.bot tr:last-child td{
+  border-bottom:none;
+}
+
 .typing{
   display:inline-flex;
   gap:6px;
@@ -421,6 +508,38 @@ textarea{
   color:white;
   font-size:18px;
   cursor:pointer;
+}
+
+.mic-btn{
+  min-width:88px;
+  height:48px;
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  color:#f0f0f6;
+  font-size:13px;
+  font-weight:600;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  cursor:pointer;
+  transition:background 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+
+.mic-btn:hover{
+  background:rgba(255,255,255,0.13);
+  border-color:rgba(255,255,255,0.28);
+}
+
+.mic-btn:active{
+  transform:translateY(1px);
+}
+
+.mic-btn.listening{
+  background:rgba(255,59,48,0.18);
+  border-color:rgba(255,107,107,0.45);
+  color:#ffd4d4;
 }
 
 /* ===== CODE ===== */
@@ -688,6 +807,13 @@ textarea{
     border-radius:10px;
   }
 
+  .mic-btn{
+    min-width:76px;
+    height:44px;
+    border-radius:10px;
+    font-size:12px;
+  }
+
   .msg-footer .action-btn{
     width:30px;
     height:30px;
@@ -756,6 +882,7 @@ textarea{
   <div class="input-wrap">
     <div class="input-row">
       <textarea id="input" rows="1" placeholder="Ask RED..."></textarea>
+      <button class="mic-btn" id="micBtn" type="button"><i class="fas fa-microphone"></i> Voice</button>
       <button class="send" id="sendBtn">
         <i class="fas fa-paper-plane"></i>
       </button>
@@ -835,6 +962,7 @@ const messages=document.getElementById("messages");
 const bgA=document.getElementById("bgA");
 const bgB=document.getElementById("bgB");
 const input=document.getElementById("input");
+const micBtn=document.getElementById("micBtn");
 const sendBtn=document.getElementById("sendBtn");
 const historyBtn=document.getElementById("historyBtn");
 const historyOverlay=document.getElementById("historyOverlay");
@@ -858,6 +986,10 @@ let lastBgIndex=Number(localStorage.getItem("lastBgIndex") || "-1");
 let lastUserPrompt="";
 let codeModalCurrentCode="";
 let codeModalCurrentLang="text";
+let voiceRecognizer=null;
+let isVoiceListening=false;
+let voiceShouldSubmit=false;
+let finalVoiceText="";
 
 const STOCK_BACKGROUNDS=[
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80",
@@ -929,6 +1061,100 @@ function escapeHtml(t){
   return (t || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+function setMicState(listening){
+  isVoiceListening=listening;
+  micBtn.classList.toggle("listening",listening);
+  micBtn.innerHTML=listening
+    ? '<i class="fas fa-stop"></i> End'
+    : '<i class="fas fa-microphone"></i> Voice';
+}
+
+function getSpeechRecognition(){
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function initVoiceRecognizer(){
+  const SpeechRecognition=getSpeechRecognition();
+  if(!SpeechRecognition) return null;
+  const recognizer=new SpeechRecognition();
+  recognizer.lang=navigator.language || "en-US";
+  recognizer.continuous=true;
+  recognizer.interimResults=true;
+
+  recognizer.onresult=(event)=>{
+    let interim="";
+    for(let i=event.resultIndex; i<event.results.length; i++){
+      const chunk=event.results[i][0]?.transcript || "";
+      if(event.results[i].isFinal){
+        finalVoiceText+=(chunk + " ");
+      }else{
+        interim+=chunk;
+      }
+    }
+    const composed=(finalVoiceText + interim).trim();
+    if(composed){
+      input.value=composed;
+      autoResizeInput();
+    }
+  };
+
+  recognizer.onerror=(event)=>{
+    showToast(`Voice error: ${event.error || "unknown"}`);
+    setMicState(false);
+  };
+
+  recognizer.onend=async ()=>{
+    const shouldSubmit=voiceShouldSubmit;
+    voiceShouldSubmit=false;
+    setMicState(false);
+    const rawText=(finalVoiceText || input.value || "").trim();
+    finalVoiceText="";
+    if(!shouldSubmit || !rawText) return;
+
+    try{
+      const r=await fetch("/api/voice/process",{
+        method:"POST",
+        headers:authHeaders(),
+        body:JSON.stringify({text:rawText,target_lang:"en"})
+      });
+      const d=await r.json();
+      const processed=(d.processed_text || rawText).trim();
+      input.value=processed;
+      autoResizeInput();
+      await sendMessage(processed);
+    }catch{
+      input.value=rawText;
+      autoResizeInput();
+      await sendMessage(rawText);
+    }
+  };
+  return recognizer;
+}
+
+function toggleVoiceInput(){
+  if(isVoiceListening){
+    voiceShouldSubmit=true;
+    voiceRecognizer?.stop();
+    return;
+  }
+  if(!voiceRecognizer){
+    voiceRecognizer=initVoiceRecognizer();
+  }
+  if(!voiceRecognizer){
+    showToast("Voice input is not supported in this browser.");
+    return;
+  }
+  finalVoiceText="";
+  voiceShouldSubmit=false;
+  setMicState(true);
+  try{
+    voiceRecognizer.start();
+  }catch{
+    setMicState(false);
+    showToast("Unable to start voice recognition.");
+  }
+}
+
 function showToast(message){
   toast.textContent=message;
   toast.classList.add("show");
@@ -957,6 +1183,131 @@ function languageMeta(lang){
 
 function renderTypingIndicator(){
   return '<div class="typing" aria-label="RED is typing"><span></span><span></span><span></span></div>';
+}
+
+function applyInlineFormatting(text){
+  return text
+    .replace(/`([^`\n]+)`/g,'<span class="inline-code">$1</span>')
+    .replace(/\*\*([^*\n]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/\*([^*\n]+)\*/g,"<em>$1</em>");
+}
+
+function formatStructuredText(escapedText){
+  const lines=(escapedText || "").replace(/\r\n/g,"\n").split("\n");
+  const out=[];
+  let paragraph=[];
+  let inUl=false;
+  let inOl=false;
+
+  const flushParagraph=()=>{
+    if(!paragraph.length) return;
+    out.push(`<p>${paragraph.join("<br>")}</p>`);
+    paragraph=[];
+  };
+
+  const closeLists=()=>{
+    if(inUl){ out.push("</ul>"); inUl=false; }
+    if(inOl){ out.push("</ol>"); inOl=false; }
+  };
+  const parseTableRow=(line)=>line.replace(/^\||\|$/g,"").split("|").map(c=>applyInlineFormatting(c.trim()));
+  const isTableSeparator=(line)=>/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+  const isPossibleTableRow=(line)=>(line.includes("|") && !/^@@CODE_BLOCK_\d+@@$/.test(line.trim()));
+
+  let i=0;
+  while(i<lines.length){
+    const line=(lines[i] || "").trim();
+
+    if(/^@@CODE_BLOCK_\d+@@$/.test(line)){
+      flushParagraph();
+      closeLists();
+      out.push(line);
+      i++;
+      continue;
+    }
+
+    if(!line){
+      flushParagraph();
+      closeLists();
+      i++;
+      continue;
+    }
+
+    if(isPossibleTableRow(line) && i+1<lines.length && isTableSeparator(lines[i+1] || "")){
+      flushParagraph();
+      closeLists();
+      const headers=parseTableRow(line);
+      const rows=[];
+      i+=2;
+      while(i<lines.length){
+        const rowLine=(lines[i] || "").trim();
+        if(!rowLine || !isPossibleTableRow(rowLine) || /^@@CODE_BLOCK_\d+@@$/.test(rowLine)) break;
+        rows.push(parseTableRow(rowLine));
+        i++;
+      }
+      out.push(`<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+      continue;
+    }
+
+    if(/^>\s?/.test(line)){
+      flushParagraph();
+      closeLists();
+      const quoteLines=[];
+      while(i<lines.length){
+        const q=(lines[i] || "").trim();
+        if(!/^>\s?/.test(q)) break;
+        quoteLines.push(applyInlineFormatting(q.replace(/^>\s?/,"")));
+        i++;
+      }
+      out.push(`<blockquote>${quoteLines.join("<br>")}</blockquote>`);
+      continue;
+    }
+
+    if(/^---+$/.test(line)){
+      flushParagraph();
+      closeLists();
+      out.push('<hr class="msg-sep">');
+      i++;
+      continue;
+    }
+
+    const heading=line.match(/^(#{1,3})\s+(.+)$/);
+    if(heading){
+      flushParagraph();
+      closeLists();
+      const level=heading[1].length===1 ? "h2" : heading[1].length===2 ? "h3" : "h4";
+      out.push(`<${level}>${applyInlineFormatting(heading[2])}</${level}>`);
+      i++;
+      continue;
+    }
+
+    const ordered=line.match(/^\d+\.\s+(.+)$/);
+    if(ordered){
+      flushParagraph();
+      if(inUl){ out.push("</ul>"); inUl=false; }
+      if(!inOl){ out.push("<ol>"); inOl=true; }
+      out.push(`<li>${applyInlineFormatting(ordered[1])}</li>`);
+      i++;
+      continue;
+    }
+
+    const unordered=line.match(/^[-*]\s+(.+)$/);
+    if(unordered){
+      flushParagraph();
+      if(inOl){ out.push("</ol>"); inOl=false; }
+      if(!inUl){ out.push("<ul>"); inUl=true; }
+      out.push(`<li>${applyInlineFormatting(unordered[1])}</li>`);
+      i++;
+      continue;
+    }
+
+    closeLists();
+    paragraph.push(applyInlineFormatting(line));
+    i++;
+  }
+
+  flushParagraph();
+  closeLists();
+  return out.join("");
 }
 
 function copyCode(btn){
@@ -1047,8 +1398,7 @@ function renderBotMessage(text){
   });
 
   let html=escapeHtml(withPlaceholders);
-  html=html.replace(/`([^`\n]+)`/g,'<span class="inline-code">$1</span>');
-  html=html.replace(/\n/g,"<br>");
+  html=formatStructuredText(html);
 
   codeBlocks.forEach((block,idx)=>{
     html=html.replace(`@@CODE_BLOCK_${idx}@@`,block);
@@ -1226,7 +1576,8 @@ async function sendMessage(forcedText="",options={}){
   }
 }
 
-sendBtn.onclick=sendMessage;
+sendBtn.onclick=()=>sendMessage();
+micBtn.onclick=toggleVoiceInput;
 input.addEventListener("input",autoResizeInput);
 input.addEventListener("keydown",e=>{
   if(e.key==="Enter" && !e.shiftKey){
