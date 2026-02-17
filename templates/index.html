@@ -13,8 +13,7 @@
 <!-- ===== PRISM ===== -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 <style>
 /* ===== ORIGINAL STYLES (UNCHANGED) ===== */
@@ -315,34 +314,71 @@ textarea{
 
 /* ===== CODE ===== */
 .inline-code{
-  font-family:monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   background:rgba(255,255,255,0.12);
-  padding:2px 6px;
+  border:1px solid rgba(255,255,255,0.16);
+  padding:2px 7px;
   border-radius:6px;
   font-size:13px;
 }
 
 .code-block{
-  margin-top:8px;
-  border-radius:10px;
+  margin-top:10px;
+  border-radius:14px;
   overflow:hidden;
-  background:#1e1e1e;
-  border:1px solid rgba(255,255,255,0.14);
+  background:#0d0f13;
+  border:1px solid rgba(255,255,255,0.18);
+  box-shadow:0 10px 28px rgba(0,0,0,0.34);
 }
 
 .code-header{
   display:flex;
   justify-content:space-between;
-  padding:6px 10px;
+  align-items:center;
+  padding:10px 12px;
   font-size:12px;
-  font-family:monospace;
-  color:var(--muted);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color:#d2d2db;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  background:linear-gradient(180deg,#151820,#10131a);
 }
-.code-header button{
-  background:none;
-  border:none;
-  color:var(--muted);
+
+.code-lang{
+  text-transform:lowercase;
+  letter-spacing:0.3px;
+}
+
+.copy-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  color:#ececf4;
+  border-radius:8px;
+  padding:5px 9px;
+  font-size:12px;
+  line-height:1;
   cursor:pointer;
+}
+
+.copy-btn:hover{
+  background:rgba(255,255,255,0.14);
+}
+
+.copy-btn:active{
+  transform:translateY(1px);
+}
+
+.code-block pre{
+  margin:0;
+  padding:14px 16px 16px;
+  overflow:auto;
+}
+
+.code-block pre code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px;
 }
 </style>
 </head>
@@ -476,31 +512,38 @@ function escapeHtml(t){
 function copyCode(btn){
   const c=btn.closest(".code-block").querySelector("code").innerText;
   navigator.clipboard.writeText(c);
-  btn.innerText="Copied ✓";
-  setTimeout(()=>btn.innerText="Copy",1200);
-}
-
-function runCode(btn){
-  const block=btn.closest(".code-block");
-  const lang=block.dataset.lang;
-  const code=block.querySelector("code").innerText;
-  if(lang==="javascript"){ try{ eval(code); alert("JS executed"); }catch(e){ alert(e.message); } }
-  else alert("Run supported only for JavaScript");
+  btn.innerHTML='<i class="fas fa-check"></i> Copied';
+  setTimeout(()=>btn.innerHTML='<i class="far fa-copy"></i> Copy code',1200);
 }
 
 function renderBotMessage(text){
-  text=text.replace(/`([^`]+)`/g,'<span class="inline-code">$1</span>');
-  return text.replace(/```(\w+)?\n([\s\S]*?)```/g,(m,l,c)=>`
-  <div class="code-block" data-lang="${(l||"text").toLowerCase()}">
-    <div class="code-header">
-      <span>${l||"code"}</span>
-      <div>
-        <button onclick="copyCode(this)">Copy</button>
-        <button onclick="runCode(this)">Run</button>
+  const source=text || "";
+  const codeBlocks=[];
+  const withPlaceholders=source.replace(/```([\w#+-]+)?\n([\s\S]*?)```/g,(m,lang,code)=>{
+    const blockLang=(lang || "text").toLowerCase();
+    const idx=codeBlocks.push(`
+      <div class="code-block" data-lang="${blockLang}">
+        <div class="code-header">
+          <span class="code-lang">${escapeHtml(blockLang)}</span>
+          <button class="copy-btn" onclick="copyCode(this)">
+            <i class="far fa-copy"></i> Copy code
+          </button>
+        </div>
+        <pre><code class="language-${blockLang}">${escapeHtml(code)}</code></pre>
       </div>
-    </div>
-    <pre><code class="language-${l||"text"}">${escapeHtml(c)}</code></pre>
-  </div>`).replace(/\n/g,"<br>");
+    `)-1;
+    return `@@CODE_BLOCK_${idx}@@`;
+  });
+
+  let html=escapeHtml(withPlaceholders);
+  html=html.replace(/`([^`\n]+)`/g,'<span class="inline-code">$1</span>');
+  html=html.replace(/\n/g,"<br>");
+
+  codeBlocks.forEach((block,idx)=>{
+    html=html.replace(`@@CODE_BLOCK_${idx}@@`,block);
+  });
+
+  return html;
 }
 
 function addMsg(text,role){
