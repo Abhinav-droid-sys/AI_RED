@@ -331,27 +331,50 @@ body{
 .typing span:nth-child(3){ animation-delay:240ms; }
 
 .msg-footer{
-  margin-top:6px;
+  margin-top:10px;
+  padding-top:2px;
   display:flex;
-  gap:8px;
-  flex-wrap:wrap;
+  gap:6px;
+  justify-content:flex-end;
+  opacity:0;
+  transform:translateY(4px);
+  pointer-events:none;
+  transition:opacity 160ms ease, transform 160ms ease;
+}
+
+.msg:hover .msg-footer{
+  opacity:1;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+
+.msg:focus-within .msg-footer{
+  opacity:1;
+  transform:translateY(0);
+  pointer-events:auto;
 }
 
 .msg-footer .action-btn{
   border:1px solid rgba(255,255,255,0.18);
-  background:rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.06);
   color:#ebebf4;
   border-radius:999px;
-  font-size:12px;
-  padding:6px 10px;
+  width:28px;
+  height:28px;
+  padding:0;
+  display:inline-grid;
+  place-items:center;
+  font-size:11px;
   line-height:1;
   cursor:pointer;
   transition:background 160ms ease, transform 120ms ease, border-color 160ms ease;
+  opacity:0.9;
 }
 
 .msg-footer .action-btn:hover{
-  background:rgba(255,255,255,0.14);
-  border-color:rgba(255,255,255,0.25);
+  background:rgba(255,255,255,0.11);
+  border-color:rgba(255,255,255,0.22);
+  opacity:1;
 }
 
 .msg-footer .action-btn:active{
@@ -666,7 +689,14 @@ textarea{
   }
 
   .msg-footer .action-btn{
-    padding:7px 10px;
+    width:30px;
+    height:30px;
+  }
+
+  .msg-footer{
+    opacity:1;
+    transform:none;
+    pointer-events:auto;
   }
 
   .code-modal{
@@ -956,69 +986,6 @@ function closeCodeModal(){
   codeModal.classList.remove("open");
 }
 
-function extractFirstRunnableCode(text){
-  const source=text || "";
-  const match=source.match(/```([\w#+-]+)?\n([\s\S]*?)```/);
-  if(!match) return null;
-  const lang=(match[1] || "text").toLowerCase();
-  if(lang!=="javascript" && lang!=="js") return null;
-  return match[2] || "";
-}
-
-function runJavascriptSandbox(code){
-  return new Promise((resolve)=>{
-    const workerScript=`
-      self.onmessage=(event)=>{
-        const logs=[];
-        const serialize=(v)=>{ try{ return typeof v==='string'?v:JSON.stringify(v); }catch{ return String(v); } };
-        console.log=(...args)=>logs.push(args.map(serialize).join(' '));
-        try{
-          const result=(new Function(event.data))();
-          Promise.resolve(result).then((value)=>{
-            self.postMessage({ok:true,logs,result:serialize(value)});
-          }).catch((err)=>{
-            self.postMessage({ok:false,logs,error:String(err)});
-          });
-        }catch(err){
-          self.postMessage({ok:false,logs,error:String(err)});
-        }
-      };
-    `;
-    const blob=new Blob([workerScript],{type:"application/javascript"});
-    const url=URL.createObjectURL(blob);
-    const worker=new Worker(url);
-    const timeout=setTimeout(()=>{
-      worker.terminate();
-      URL.revokeObjectURL(url);
-      resolve({ok:false,error:"Execution timed out"});
-    },2200);
-    worker.onmessage=(event)=>{
-      clearTimeout(timeout);
-      worker.terminate();
-      URL.revokeObjectURL(url);
-      resolve(event.data || {ok:false,error:"No output"});
-    };
-    worker.postMessage(code);
-  });
-}
-
-async function runFromBot(btn){
-  const wrapper=btn.closest(".msg");
-  const raw=wrapper?.__rawText || "";
-  const code=extractFirstRunnableCode(raw);
-  if(!code){
-    showToast("Run supports JavaScript fenced code only.");
-    return;
-  }
-  const output=await runJavascriptSandbox(code);
-  if(output.ok){
-    const logText=(output.logs || []).join(" | ");
-    showToast(logText ? `Output: ${logText.slice(0,90)}` : "Code executed.");
-  }else{
-    showToast(`Run error: ${(output.error || "Unknown error").slice(0,90)}`);
-  }
-}
-
 function copyBotMessage(btn){
   const wrapper=btn.closest(".msg");
   const raw=wrapper?.__rawText || "";
@@ -1094,10 +1061,9 @@ function createBotActions(){
   const footer=document.createElement("div");
   footer.className="msg-footer";
   footer.innerHTML=`
-    <button class="action-btn" onclick="copyBotMessage(this)"><i class="far fa-copy"></i> Copy</button>
-    <button class="action-btn" onclick="regenerateFromBot(this)"><i class="fas fa-rotate-right"></i> Regenerate</button>
-    <button class="action-btn" onclick="explainBotMessage(this)"><i class="fas fa-circle-info"></i> Explain</button>
-    <button class="action-btn" onclick="runFromBot(this)"><i class="fas fa-play"></i> Run</button>
+    <button class="action-btn" onclick="copyBotMessage(this)" title="Copy" aria-label="Copy"><i class="far fa-copy"></i></button>
+    <button class="action-btn" onclick="regenerateFromBot(this)" title="Regenerate" aria-label="Regenerate"><i class="fas fa-rotate-right"></i></button>
+    <button class="action-btn" onclick="explainBotMessage(this)" title="Explain" aria-label="Explain"><i class="fas fa-circle-info"></i></button>
   `;
   return footer;
 }
