@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, render_template, render_template_string, send_from_directory
+from flask import Flask, request, jsonify, render_template, render_template_string
 from groq import Groq
 import os
 from dotenv import load_dotenv
-from datetime import datetime
-from flask import Flask, render_template
+from datetime import datetime, timezone
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 
 # Load environment variables from .env file
@@ -28,6 +29,27 @@ if not GROQ_API_KEY:
 client = Groq(api_key=GROQ_API_KEY)
 
 # =========================
+# FIREBASE / FIRESTORE CONFIG
+# =========================
+
+FIREBASE_SERVICE_ACCOUNT_PATH = (os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH") or "").strip()
+if not FIREBASE_SERVICE_ACCOUNT_PATH:
+    # Fallback for local setup when the key file is placed at project root.
+    FIREBASE_SERVICE_ACCOUNT_PATH = "Database_key.json"
+if not os.path.exists(FIREBASE_SERVICE_ACCOUNT_PATH):
+    raise ValueError(
+        "Firebase service account JSON not found. "
+        f"Checked: {FIREBASE_SERVICE_ACCOUNT_PATH}. "
+        "Set FIREBASE_SERVICE_ACCOUNT_PATH in .env to a valid JSON key file."
+    )
+
+if not firebase_admin._apps:
+    cred = credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_PATH)
+    firebase_admin.initialize_app(cred)
+
+firestore_db = firestore.client()
+
+# =========================
 # RED PERSONA (SYSTEM PROMPT)
 # =========================
 
@@ -39,21 +61,8 @@ SYSTEM_PROMPT = (
     "Be helpful, concise, and friendly."
 )
 
-# =========================
-# IN-MEMORY CHAT STORAGE
-# =========================
-
-chat_histories = {}  # { user::session_id: [ {role, content}, ... ] }
-chat_titles = {}     # { user::session_id: "Title" }
-chat_meta = {}       # { user::session_id: {id, user_id, created_at, updated_at} }
-
-
-def chat_key(user_id: str, session_id: str) -> str:
-    return f"{user_id}::{session_id}"
-
-
 def now_utc_iso() -> str:
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def request_user_id() -> str:
@@ -69,6 +78,14 @@ def history_preview(history: list) -> str:
         if content:
             return content[:90]
     return ""
+
+
+def chats_collection(user_id: str):
+    return firestore_db.collection("users").document(user_id).collection("chats")
+
+
+def chat_doc_ref(user_id: str, session_id: str):
+    return chats_collection(user_id).document(session_id)
 
 def generate_chat_title(first_message: str) -> str:
     """Generate a short title for the chat based on first user message."""
@@ -219,7 +236,6 @@ def chat():
         prompt = data.get("prompt", "").strip()
         session_id = (data.get("session_id", "default") or "default").strip()
         user_id = request_user_id()
-        store_key = chat_key(user_id, session_id)
         is_incognito = bool(data.get("is_incognito", False))
         incognito_history = data.get("history", []) or []
 
@@ -236,10 +252,14 @@ def chat():
                 if content:
                     messages.append({"role": role, "content": content})
         else:
-            if store_key in chat_histories:
-                for msg in chat_histories[store_key]:
-                    role = "user" if msg["role"] == "user" else "assistant"
-                    messages.append({"role": role, "content": msg["content"]})
+            existing_doc = chat_doc_ref(user_id, session_id).get()
+            existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
+            stored_history = existing_chat.get("history", [])
+            for msg in stored_history:
+                role = "user" if msg.get("role") == "user" else "assistant"
+                content = msg.get("content", "")
+                if content:
+                    messages.append({"role": role, "content": content})
 
         messages.append({"role": "user", "content": prompt})
 
@@ -257,25 +277,32 @@ def chat():
         chat_title = None
 
         if not is_incognito:
-            is_first_message = store_key not in chat_histories
+            existing_doc = chat_doc_ref(user_id, session_id).get()
+            existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
+            existing_history = existing_chat.get("history", [])
+            is_first_message = not existing_history
             timestamp = now_utc_iso()
-
-            if store_key not in chat_histories:
-                chat_histories[store_key] = []
-                chat_meta[store_key] = {
-                    "id": session_id,
-                    "user_id": user_id,
-                    "created_at": timestamp,
-                    "updated_at": timestamp,
-                }
-
-            chat_histories[store_key].append({"role": "user", "content": prompt})
-            chat_histories[store_key].append({"role": "assistant", "content": assistant_text})
-            chat_meta[store_key]["updated_at"] = timestamp
+            updated_history = existing_history + [
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": assistant_text},
+            ]
 
             if is_first_message:
                 chat_title = generate_chat_title(prompt)
-                chat_titles[store_key] = chat_title
+            else:
+                chat_title = existing_chat.get("title")
+
+            chat_doc_ref(user_id, session_id).set(
+                {
+                    "id": session_id,
+                    "user_id": user_id,
+                    "title": chat_title or "New Chat",
+                    "history": updated_history,
+                    "preview": history_preview(updated_history),
+                    "created_at": existing_chat.get("created_at") or timestamp,
+                    "updated_at": timestamp,
+                }
+            )
 
         return jsonify({"success": True, "response": assistant_text, "chat_title": chat_title})
 
@@ -291,23 +318,24 @@ def chat():
 @app.route("/api/chats", methods=["GET"])
 def get_chats():
     """Return list of all named chat sessions for sidebar."""
-    user_id = request_user_id()
-    chats = []
-    for store_key, meta in chat_meta.items():
-        if meta.get("user_id") != user_id:
-            continue
-        history = chat_histories.get(store_key, [])
-        chats.append(
-            {
-                "id": meta.get("id"),
-                "title": chat_titles.get(store_key, "New Chat") or "New Chat",
-                "updated_at": meta.get("updated_at"),
-                "created_at": meta.get("created_at"),
-                "preview": history_preview(history),
-            }
-        )
-    chats.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-    return jsonify({"success": True, "chats": chats})
+    try:
+        user_id = request_user_id()
+        docs = chats_collection(user_id).order_by("updated_at", direction=firestore.Query.DESCENDING).stream()
+        chats = []
+        for doc in docs:
+            d = doc.to_dict() or {}
+            chats.append(
+                {
+                    "id": d.get("id") or doc.id,
+                    "title": d.get("title") or "New Chat",
+                    "updated_at": d.get("updated_at"),
+                    "created_at": d.get("created_at"),
+                    "preview": d.get("preview") or history_preview(d.get("history", [])),
+                }
+            )
+        return jsonify({"success": True, "chats": chats})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "chats": []}), 500
 
 
 @app.route("/api/chat/history", methods=["POST"])
@@ -319,8 +347,8 @@ def get_chat_history():
         if not session_id:
             return jsonify({"success": False, "error": "session_id is required"}), 400
         user_id = request_user_id()
-        store_key = chat_key(user_id, session_id)
-        history = chat_histories.get(store_key, [])
+        doc = chat_doc_ref(user_id, session_id).get()
+        history = (doc.to_dict() or {}).get("history", []) if doc.exists else []
         return jsonify({"success": True, "history": history})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -335,14 +363,7 @@ def delete_chat():
         if not session_id:
             return jsonify({"success": False, "error": "session_id is required"}), 400
         user_id = request_user_id()
-        store_key = chat_key(user_id, session_id)
-
-        if store_key in chat_titles:
-            del chat_titles[store_key]
-        if store_key in chat_histories:
-            del chat_histories[store_key]
-        if store_key in chat_meta:
-            del chat_meta[store_key]
+        chat_doc_ref(user_id, session_id).delete()
 
         return jsonify({"success": True})
     except Exception as e:
@@ -354,12 +375,10 @@ def clear_chats():
     """Delete all stored chat sessions for current user."""
     try:
         user_id = request_user_id()
-        user_keys = [k for k, meta in chat_meta.items() if meta.get("user_id") == user_id]
-        for store_key in user_keys:
-            chat_meta.pop(store_key, None)
-            chat_titles.pop(store_key, None)
-            chat_histories.pop(store_key, None)
-        return jsonify({"success": True, "deleted": len(user_keys)})
+        docs = list(chats_collection(user_id).stream())
+        for doc in docs:
+            doc.reference.delete()
+        return jsonify({"success": True, "deleted": len(docs)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
