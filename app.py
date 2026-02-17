@@ -114,6 +114,26 @@ def generate_chat_title(first_message: str) -> str:
         return first_message[:30] + "..." if len(first_message) > 30 else first_message
 
 
+def owner_profile_override(prompt: str):
+    """Return fixed RED owner profile response when prompt asks about founder/creator/owner."""
+    if not prompt:
+        return None
+    normalized = " ".join(prompt.lower().strip().split())
+    keyword_groups = [
+        ("owner", "red"),
+        ("creator", "red"),
+        ("founder", "red"),
+    ]
+    is_owner_question = any(a in normalized and b in normalized for a, b in keyword_groups)
+    if not is_owner_question:
+        return None
+    return (
+        "Abhinav Pratap Singh, a B.Tech CSE Student.\n\n"
+        "GitHub: https://github.com/Abhinav-droid-sys\n"
+        "LinkedIn: https://www.linkedin.com/in/abhinav-pratap-singh-998911369"
+    )
+
+
 # =========================
 # ROUTES
 # =========================
@@ -242,37 +262,41 @@ def chat():
         if not prompt:
             return jsonify({"success": False, "error": "No prompt provided"})
 
-        # Build messages for Groq
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        # Fixed profile response for founder/owner/creator queries.
+        assistant_text = owner_profile_override(prompt)
 
-        if is_incognito:
-            for msg in incognito_history:
-                role = "user" if msg.get("role") == "user" else "assistant"
-                content = msg.get("content", "")
-                if content:
-                    messages.append({"role": role, "content": content})
-        else:
-            existing_doc = chat_doc_ref(user_id, session_id).get()
-            existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
-            stored_history = existing_chat.get("history", [])
-            for msg in stored_history:
-                role = "user" if msg.get("role") == "user" else "assistant"
-                content = msg.get("content", "")
-                if content:
-                    messages.append({"role": role, "content": content})
+        if not assistant_text:
+            # Build messages for Groq
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-        messages.append({"role": "user", "content": prompt})
+            if is_incognito:
+                for msg in incognito_history:
+                    role = "user" if msg.get("role") == "user" else "assistant"
+                    content = msg.get("content", "")
+                    if content:
+                        messages.append({"role": role, "content": content})
+            else:
+                existing_doc = chat_doc_ref(user_id, session_id).get()
+                existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
+                stored_history = existing_chat.get("history", [])
+                for msg in stored_history:
+                    role = "user" if msg.get("role") == "user" else "assistant"
+                    content = msg.get("content", "")
+                    if content:
+                        messages.append({"role": role, "content": content})
 
-        # Call Groq
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=2048,
-            top_p=1.0,
-            stream=False,
-        )
-        assistant_text = response.choices[0].message.content
+            messages.append({"role": "user", "content": prompt})
+
+            # Call Groq
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=2048,
+                top_p=1.0,
+                stream=False,
+            )
+            assistant_text = response.choices[0].message.content
 
         chat_title = None
 
