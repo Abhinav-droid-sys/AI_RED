@@ -1,2 +1,5 @@
 .env
 Database_key.json
+*service-account*.json
+*firebase*key*.json
+secrets/
