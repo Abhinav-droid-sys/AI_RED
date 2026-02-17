@@ -437,7 +437,26 @@ const promoVideo = document.getElementById("promoVideo");
 const promoSource = document.getElementById("promoSource");
 const videoCard = document.getElementById("videoCard");
 
-const originalVideoSrc = promoSource?.getAttribute("src") || "";
+const STOCK_VIDEOS = [
+    "/static/bg_particle.mp4",
+    "https://assets.mixkit.co/videos/preview/mixkit-clouds-and-blue-sky-2408-large.mp4",
+    "https://assets.mixkit.co/videos/preview/mixkit-sea-waves-coming-to-the-beach-5016-large.mp4",
+    "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4"
+];
+
+function chooseLoginVideoSrc() {
+    if (!STOCK_VIDEOS.length) return "/static/bg_particle.mp4";
+    if (STOCK_VIDEOS.length === 1) return STOCK_VIDEOS[0];
+    let lastIdx = Number(localStorage.getItem("loginVideoIdx") || "-1");
+    let idx = Math.floor(Math.random() * STOCK_VIDEOS.length);
+    while (idx === lastIdx) {
+        idx = Math.floor(Math.random() * STOCK_VIDEOS.length);
+    }
+    localStorage.setItem("loginVideoIdx", String(idx));
+    return STOCK_VIDEOS[idx];
+}
+
+const originalVideoSrc = chooseLoginVideoSrc();
 
 function syncVideoForDevice() {
     const isPhone = window.matchMedia("(max-width: 980px)").matches;
@@ -451,7 +470,8 @@ function syncVideoForDevice() {
         videoCard.style.display = "none";
     } else {
         videoCard.style.display = "";
-        if (!promoSource.getAttribute("src")) {
+        const currentSrc = promoSource.getAttribute("src") || "";
+        if (currentSrc !== originalVideoSrc) {
             promoSource.setAttribute("src", originalVideoSrc);
             promoVideo.load();
         }
