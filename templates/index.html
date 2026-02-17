@@ -109,30 +109,48 @@ body{
 .history-overlay{
   position:fixed;
   inset:0;
-  background:rgba(5,5,6,0.62);
-  backdrop-filter:blur(2px);
+  background:rgba(6,6,8,0.38);
+  backdrop-filter:blur(4px);
   z-index:40;
-  display:none;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity 220ms ease, visibility 220ms ease;
 }
-.history-overlay.open{ display:block; }
+.history-overlay.open{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
 
 .history-panel{
   position:fixed;
-  top:0;
-  right:-360px;
+  top:12px;
+  right:12px;
   width:min(360px,92vw);
-  height:100dvh;
+  height:calc(100dvh - 24px);
   z-index:50;
-  background:rgba(10,10,12,0.94);
-  border-left:1px solid rgba(255,255,255,0.14);
-  backdrop-filter:blur(20px) saturate(1.2);
-  padding:16px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.16);
+  border-radius:20px;
+  box-shadow:0 24px 52px rgba(0,0,0,0.42);
+  backdrop-filter:blur(24px) saturate(1.2);
+  padding:16px 14px 14px;
   display:flex;
   flex-direction:column;
   gap:12px;
-  transition:right 220ms ease;
+  opacity:0;
+  visibility:hidden;
+  transform:translateX(108%) scale(0.985);
+  pointer-events:none;
+  transition:transform 240ms ease, opacity 220ms ease, visibility 220ms ease;
 }
-.history-panel.open{ right:0; }
+.history-panel.open{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(0) scale(1);
+  pointer-events:auto;
+}
 
 .history-head{
   display:flex;
@@ -151,13 +169,21 @@ body{
 }
 
 .history-btn{
-  border:1px solid rgba(255,255,255,0.14);
-  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.18);
+  background:rgba(255,255,255,0.09);
   color:white;
   border-radius:10px;
   padding:8px 10px;
   font-size:12px;
   cursor:pointer;
+  transition:background 180ms ease, border-color 180ms ease, transform 120ms ease;
+}
+.history-btn:hover{
+  background:rgba(255,255,255,0.14);
+  border-color:rgba(255,255,255,0.24);
+}
+.history-btn:active{
+  transform:translateY(1px);
 }
 
 .history-list{
@@ -171,11 +197,18 @@ body{
 }
 
 .history-item{
-  border:1px solid rgba(255,255,255,0.12);
-  background:rgba(255,255,255,0.06);
-  border-radius:12px;
-  padding:10px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.07);
+  border-radius:14px;
+  padding:11px;
   cursor:pointer;
+  transition:background 190ms ease, border-color 190ms ease, transform 120ms ease, box-shadow 190ms ease;
+}
+.history-item:hover{
+  background:rgba(255,255,255,0.11);
+  border-color:rgba(255,255,255,0.2);
+  transform:translateY(-1px);
+  box-shadow:0 8px 18px rgba(0,0,0,0.18);
 }
 
 .history-item.active{
@@ -248,23 +281,81 @@ body{
   gap:14px;
 }
 
-.msg{ display:flex; max-width:85%; }
+.msg{
+  display:flex;
+  max-width:85%;
+  animation:msgInLeft 300ms cubic-bezier(.2,.85,.25,1);
+}
 .msg.user{ align-self:flex-end; }
+.msg.user{ animation-name:msgInRight; }
+.msg.no-anim{ animation:none; }
 
 .bubble{ 
   padding:12px 16px;
   border-radius:16px;
-  line-height:1.45;
+  line-height:1.55;
   font-size:15px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.2);
 }
 .bubble.user{
   background:linear-gradient(135deg,var(--red),var(--red2));
   border-bottom-right-radius:6px;
+  border:1px solid rgba(255,255,255,0.22);
+  box-shadow:0 10px 24px rgba(255,59,48,0.22), inset 0 1px 0 rgba(255,255,255,0.24);
 }
 .bubble.bot{
-  background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.14);
+  color:#f2f2f8;
+  background:linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.07));
+  border:1px solid rgba(255,255,255,0.16);
   border-bottom-left-radius:6px;
+  box-shadow:0 10px 24px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.typing{
+  display:inline-flex;
+  gap:6px;
+  align-items:center;
+  min-height:18px;
+}
+
+.typing span{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.9);
+  opacity:0.3;
+  animation:typingPulse 1s infinite ease-in-out;
+}
+
+.typing span:nth-child(2){ animation-delay:120ms; }
+.typing span:nth-child(3){ animation-delay:240ms; }
+
+.msg-footer{
+  margin-top:6px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.msg-footer .action-btn{
+  border:1px solid rgba(255,255,255,0.18);
+  background:rgba(255,255,255,0.08);
+  color:#ebebf4;
+  border-radius:999px;
+  font-size:12px;
+  padding:6px 10px;
+  line-height:1;
+  cursor:pointer;
+  transition:background 160ms ease, transform 120ms ease, border-color 160ms ease;
+}
+
+.msg-footer .action-btn:hover{
+  background:rgba(255,255,255,0.14);
+  border-color:rgba(255,255,255,0.25);
+}
+
+.msg-footer .action-btn:active{
+  transform:translateY(1px);
 }
 
 /* ===== INPUT ===== */
@@ -340,9 +431,36 @@ textarea{
   background:linear-gradient(180deg,#151820,#10131a);
 }
 
+.code-meta{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.code-icon{
+  width:18px;
+  text-align:center;
+  opacity:0.9;
+}
+
 .code-lang{
   text-transform:lowercase;
   letter-spacing:0.3px;
+}
+
+.code-file{
+  color:#a9afbd;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:130px;
+}
+
+.code-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
 }
 
 .copy-btn{
@@ -367,6 +485,24 @@ textarea{
   transform:translateY(1px);
 }
 
+.expand-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.2);
+  color:#ececf4;
+  border-radius:8px;
+  padding:5px 9px;
+  font-size:12px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.expand-btn:hover{
+  background:rgba(255,255,255,0.14);
+}
+
 .code-block pre{
   margin:0;
   padding:14px 16px 16px;
@@ -376,6 +512,187 @@ textarea{
 .code-block pre code{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:13px;
+}
+
+.code-modal{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  background:rgba(0,0,0,0.58);
+  backdrop-filter:blur(5px);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity 220ms ease, visibility 220ms ease;
+  display:grid;
+  place-items:center;
+  padding:18px;
+}
+
+.code-modal.open{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+
+.code-modal-card{
+  width:min(980px,96vw);
+  height:min(82dvh,760px);
+  border-radius:18px;
+  overflow:hidden;
+  background:#10131a;
+  border:1px solid rgba(255,255,255,0.18);
+  box-shadow:0 24px 60px rgba(0,0,0,0.5);
+  display:flex;
+  flex-direction:column;
+}
+
+.code-modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+  background:linear-gradient(180deg,#171b25,#121621);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12px;
+}
+
+.code-modal-actions{
+  display:flex;
+  gap:8px;
+}
+
+.code-modal-btn{
+  border:1px solid rgba(255,255,255,0.2);
+  background:rgba(255,255,255,0.08);
+  color:#ececf4;
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.code-modal-body{
+  flex:1;
+  overflow:auto;
+}
+
+.line-grid{
+  margin:0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px;
+  line-height:1.55;
+}
+
+.line-row{
+  display:grid;
+  grid-template-columns:54px 1fr;
+  padding:0 12px 0 0;
+}
+
+.line-no{
+  color:#6f7686;
+  text-align:right;
+  padding:0 10px 0 0;
+  user-select:none;
+  border-right:1px solid rgba(255,255,255,0.08);
+  margin-right:12px;
+}
+
+.line-code{
+  color:#e8eaf0;
+  white-space:pre;
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:26px;
+  transform:translateX(-50%) translateY(16px);
+  background:rgba(16,18,23,0.9);
+  border:1px solid rgba(255,255,255,0.2);
+  color:#f1f2f8;
+  border-radius:12px;
+  padding:8px 12px;
+  font-size:12px;
+  opacity:0;
+  visibility:hidden;
+  z-index:90;
+  transition:opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+}
+
+.toast.show{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(-50%) translateY(0);
+}
+
+@media (max-width:760px){
+  .app{
+    margin:8px auto;
+    height:calc(100dvh - 16px);
+    padding:8px;
+  }
+
+  .msg{
+    max-width:96%;
+  }
+
+  .messages{
+    padding:14px;
+    gap:12px;
+  }
+
+  .bubble{
+    font-size:14px;
+    padding:10px 13px;
+  }
+
+  .input-wrap{
+    padding:10px;
+    backdrop-filter:blur(12px);
+  }
+
+  .input-row{
+    gap:10px;
+    padding:10px;
+  }
+
+  .send{
+    width:44px;
+    height:44px;
+    border-radius:10px;
+  }
+
+  .msg-footer .action-btn{
+    padding:7px 10px;
+  }
+
+  .code-modal{
+    padding:8px;
+  }
+
+  .code-modal-card{
+    width:100%;
+    height:90dvh;
+    border-radius:14px;
+  }
+}
+
+@keyframes msgInLeft{
+  from{ opacity:0; transform:translateX(-18px) translateY(4px) scale(0.985); filter:blur(3px); }
+  to{ opacity:1; transform:translateX(0) translateY(0) scale(1); filter:blur(0); }
+}
+
+@keyframes msgInRight{
+  from{ opacity:0; transform:translateX(18px) translateY(4px) scale(0.985); filter:blur(3px); }
+  to{ opacity:1; transform:translateX(0) translateY(0) scale(1); filter:blur(0); }
+}
+
+@keyframes typingPulse{
+  0%,80%,100%{ transform:translateY(0); opacity:0.35; }
+  40%{ transform:translateY(-3px); opacity:1; }
 }
 </style>
 </head>
@@ -431,6 +748,23 @@ textarea{
   <ul class="history-list" id="historyList"></ul>
 </aside>
 
+<div class="code-modal" id="codeModal">
+  <div class="code-modal-card">
+    <div class="code-modal-head">
+      <div id="codeModalTitle">code</div>
+      <div class="code-modal-actions">
+        <button class="code-modal-btn" id="codeModalCopyBtn"><i class="far fa-copy"></i> Copy</button>
+        <button class="code-modal-btn" id="codeModalCloseBtn"><i class="fas fa-xmark"></i> Close</button>
+      </div>
+    </div>
+    <div class="code-modal-body">
+      <div id="codeModalBody"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <!-- ===== FIREBASE AUTH GUARD (MERGED) ===== -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
@@ -479,12 +813,21 @@ const historyList=document.getElementById("historyList");
 const closeHistoryBtn=document.getElementById("closeHistoryBtn");
 const newChatBtn=document.getElementById("newChatBtn");
 const clearChatsBtn=document.getElementById("clearChatsBtn");
+const codeModal=document.getElementById("codeModal");
+const codeModalTitle=document.getElementById("codeModalTitle");
+const codeModalBody=document.getElementById("codeModalBody");
+const codeModalCopyBtn=document.getElementById("codeModalCopyBtn");
+const codeModalCloseBtn=document.getElementById("codeModalCloseBtn");
+const toast=document.getElementById("toast");
 
 let activeSessionId=localStorage.getItem("activeSessionId")||"";
 let chatCache=[];
 let activeBgLayer="A";
 let sessionBackgroundMap=JSON.parse(localStorage.getItem("sessionBackgroundMap") || "{}");
 let lastBgIndex=Number(localStorage.getItem("lastBgIndex") || "-1");
+let lastUserPrompt="";
+let codeModalCurrentCode="";
+let codeModalCurrentLang="text";
 
 const STOCK_BACKGROUNDS=[
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80",
@@ -556,6 +899,36 @@ function escapeHtml(t){
   return (t || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+function showToast(message){
+  toast.textContent=message;
+  toast.classList.add("show");
+  clearTimeout(showToast._timer);
+  showToast._timer=setTimeout(()=>toast.classList.remove("show"),1700);
+}
+
+function languageMeta(lang){
+  const normalized=(lang || "text").toLowerCase();
+  const map={
+    js:{label:"javascript", icon:"<i class='fab fa-js'></i>", ext:"js"},
+    javascript:{label:"javascript", icon:"<i class='fab fa-js'></i>", ext:"js"},
+    ts:{label:"typescript", icon:"<i class='fas fa-code'></i>", ext:"ts"},
+    typescript:{label:"typescript", icon:"<i class='fas fa-code'></i>", ext:"ts"},
+    py:{label:"python", icon:"<i class='fab fa-python'></i>", ext:"py"},
+    python:{label:"python", icon:"<i class='fab fa-python'></i>", ext:"py"},
+    bash:{label:"bash", icon:"<i class='fas fa-terminal'></i>", ext:"sh"},
+    sh:{label:"bash", icon:"<i class='fas fa-terminal'></i>", ext:"sh"},
+    html:{label:"html", icon:"<i class='fab fa-html5'></i>", ext:"html"},
+    css:{label:"css", icon:"<i class='fab fa-css3-alt'></i>", ext:"css"},
+    json:{label:"json", icon:"<i class='fas fa-brackets-curly'></i>", ext:"json"},
+    sql:{label:"sql", icon:"<i class='fas fa-database'></i>", ext:"sql"}
+  };
+  return map[normalized] || {label:normalized || "text", icon:"<i class='fas fa-file-code'></i>", ext:normalized || "txt"};
+}
+
+function renderTypingIndicator(){
+  return '<div class="typing" aria-label="RED is typing"><span></span><span></span><span></span></div>';
+}
+
 function copyCode(btn){
   const c=btn.closest(".code-block").querySelector("code").innerText;
   navigator.clipboard.writeText(c);
@@ -563,18 +936,142 @@ function copyCode(btn){
   setTimeout(()=>btn.innerHTML='<i class="far fa-copy"></i> Copy code',1200);
 }
 
+function openCodeModal(btn){
+  const block=btn.closest(".code-block");
+  const codeEl=block?.querySelector("code");
+  if(!codeEl) return;
+  const lang=(block.dataset.lang || "text").toLowerCase();
+  const meta=languageMeta(lang);
+  const code=codeEl.innerText || "";
+
+  codeModalCurrentCode=code;
+  codeModalCurrentLang=lang;
+  codeModalTitle.innerHTML=`${meta.icon} ${escapeHtml(meta.label)} <span style="color:#9ea4b4;">snippet.${escapeHtml(meta.ext)}</span>`;
+  const lines=(code.replace(/\r\n/g,"\n")).split("\n");
+  codeModalBody.innerHTML=`<div class="line-grid">${lines.map((line,idx)=>`<div class="line-row"><span class="line-no">${idx+1}</span><span class="line-code">${escapeHtml(line)}</span></div>`).join("")}</div>`;
+  codeModal.classList.add("open");
+}
+
+function closeCodeModal(){
+  codeModal.classList.remove("open");
+}
+
+function extractFirstRunnableCode(text){
+  const source=text || "";
+  const match=source.match(/```([\w#+-]+)?\n([\s\S]*?)```/);
+  if(!match) return null;
+  const lang=(match[1] || "text").toLowerCase();
+  if(lang!=="javascript" && lang!=="js") return null;
+  return match[2] || "";
+}
+
+function runJavascriptSandbox(code){
+  return new Promise((resolve)=>{
+    const workerScript=`
+      self.onmessage=(event)=>{
+        const logs=[];
+        const serialize=(v)=>{ try{ return typeof v==='string'?v:JSON.stringify(v); }catch{ return String(v); } };
+        console.log=(...args)=>logs.push(args.map(serialize).join(' '));
+        try{
+          const result=(new Function(event.data))();
+          Promise.resolve(result).then((value)=>{
+            self.postMessage({ok:true,logs,result:serialize(value)});
+          }).catch((err)=>{
+            self.postMessage({ok:false,logs,error:String(err)});
+          });
+        }catch(err){
+          self.postMessage({ok:false,logs,error:String(err)});
+        }
+      };
+    `;
+    const blob=new Blob([workerScript],{type:"application/javascript"});
+    const url=URL.createObjectURL(blob);
+    const worker=new Worker(url);
+    const timeout=setTimeout(()=>{
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      resolve({ok:false,error:"Execution timed out"});
+    },2200);
+    worker.onmessage=(event)=>{
+      clearTimeout(timeout);
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      resolve(event.data || {ok:false,error:"No output"});
+    };
+    worker.postMessage(code);
+  });
+}
+
+async function runFromBot(btn){
+  const wrapper=btn.closest(".msg");
+  const raw=wrapper?.__rawText || "";
+  const code=extractFirstRunnableCode(raw);
+  if(!code){
+    showToast("Run supports JavaScript fenced code only.");
+    return;
+  }
+  const output=await runJavascriptSandbox(code);
+  if(output.ok){
+    const logText=(output.logs || []).join(" | ");
+    showToast(logText ? `Output: ${logText.slice(0,90)}` : "Code executed.");
+  }else{
+    showToast(`Run error: ${(output.error || "Unknown error").slice(0,90)}`);
+  }
+}
+
+function copyBotMessage(btn){
+  const wrapper=btn.closest(".msg");
+  const raw=wrapper?.__rawText || "";
+  if(!raw) return;
+  navigator.clipboard.writeText(raw);
+  showToast("Response copied.");
+}
+
+function explainBotMessage(btn){
+  const wrapper=btn.closest(".msg");
+  const raw=(wrapper?.__rawText || "").trim();
+  if(!raw){
+    showToast("Nothing to explain.");
+    return;
+  }
+  input.value=`Explain this answer in simple steps:\n\n${raw.slice(0,2200)}`;
+  input.focus();
+  input.dispatchEvent(new Event("input"));
+}
+
+function getLatestUserPrompt(){
+  if(lastUserPrompt) return lastUserPrompt;
+  const lastUserBubble=[...messages.querySelectorAll(".msg.user .bubble.user")].at(-1);
+  return (lastUserBubble?.innerText || "").trim();
+}
+
+async function regenerateFromBot(btn){
+  const prompt=getLatestUserPrompt();
+  if(!prompt){
+    showToast("No previous user prompt found.");
+    return;
+  }
+  await sendMessage(prompt,{asRegenerate:true});
+}
+
 function renderBotMessage(text){
   const source=text || "";
   const codeBlocks=[];
   const withPlaceholders=source.replace(/```([\w#+-]+)?\n([\s\S]*?)```/g,(m,lang,code)=>{
-    const blockLang=(lang || "text").toLowerCase();
+    const meta=languageMeta(lang);
+    const blockLang=meta.label;
     const idx=codeBlocks.push(`
       <div class="code-block" data-lang="${blockLang}">
         <div class="code-header">
-          <span class="code-lang">${escapeHtml(blockLang)}</span>
-          <button class="copy-btn" onclick="copyCode(this)">
-            <i class="far fa-copy"></i> Copy code
-          </button>
+          <div class="code-meta">
+            <span class="code-icon">${meta.icon}</span>
+            <span class="code-lang">${escapeHtml(meta.label)}</span>
+            <span class="code-file">snippet.${escapeHtml(meta.ext)}</span>
+          </div>
+          <div class="code-actions">
+            <button class="copy-btn" onclick="copyCode(this)"><i class="far fa-copy"></i> Copy code</button>
+            <button class="expand-btn" onclick="openCodeModal(this)"><i class="fas fa-up-right-and-down-left-from-center"></i> Expand</button>
+          </div>
         </div>
         <pre><code class="language-${blockLang}">${escapeHtml(code)}</code></pre>
       </div>
@@ -593,18 +1090,45 @@ function renderBotMessage(text){
   return html;
 }
 
-function addMsg(text,role){
+function createBotActions(){
+  const footer=document.createElement("div");
+  footer.className="msg-footer";
+  footer.innerHTML=`
+    <button class="action-btn" onclick="copyBotMessage(this)"><i class="far fa-copy"></i> Copy</button>
+    <button class="action-btn" onclick="regenerateFromBot(this)"><i class="fas fa-rotate-right"></i> Regenerate</button>
+    <button class="action-btn" onclick="explainBotMessage(this)"><i class="fas fa-circle-info"></i> Explain</button>
+    <button class="action-btn" onclick="runFromBot(this)"><i class="fas fa-play"></i> Run</button>
+  `;
+  return footer;
+}
+
+function addMsg(text,role,options={}){
+  const {animate=true}=options;
   const w=document.createElement("div");
   w.className="msg "+(role==="user"?"user":"");
+  if(!animate) w.classList.add("no-anim");
   const b=document.createElement("div");
   b.className="bubble "+(role==="user"?"user":"bot");
+  let footer=null;
   if(role==="bot"){
-    b.innerHTML=renderBotMessage(text);
-    setTimeout(()=>Prism.highlightAllUnder(b),0);
-  }else b.innerText=text;
+    const isTyping=text==="...";
+    if(isTyping){
+      b.innerHTML=renderTypingIndicator();
+    }else{
+      b.innerHTML=renderBotMessage(text);
+      setTimeout(()=>Prism.highlightAllUnder(b),0);
+      footer=createBotActions();
+      w.__rawText=text;
+    }
+  }else{
+    b.innerText=text;
+    lastUserPrompt=text;
+  }
   w.appendChild(b);
+  if(footer) w.appendChild(footer);
   messages.appendChild(w);
   messages.scrollTop=messages.scrollHeight;
+  return w;
 }
 
 function renderWelcome(){
@@ -670,7 +1194,7 @@ async function loadSession(sessionId){
     if(!history.length){
       renderWelcome();
     }else{
-      history.forEach(msg=>addMsg(msg.content,msg.role));
+      history.forEach(msg=>addMsg(msg.content,msg.role,{animate:false}));
     }
     setActiveSession(sessionId);
     renderHistoryList(chatCache);
@@ -701,15 +1225,24 @@ function startNewChat(){
   renderWelcome();
 }
 
-async function sendMessage(){
-  const text=input.value.trim();
+function autoResizeInput(){
+  input.style.height="auto";
+  input.style.height=Math.min(input.scrollHeight,140)+"px";
+}
+
+async function sendMessage(forcedText="",options={}){
+  const {asRegenerate=false}=options;
+  const text=(forcedText || input.value).trim();
   if(!text) return;
   if(!activeSessionId){
     setActiveSession(createSessionId());
   }
-  addMsg(text,"user");
-  input.value="";
-  addMsg("...","bot");
+  if(!asRegenerate){
+    addMsg(text,"user");
+    input.value="";
+    autoResizeInput();
+  }
+  const typingMsg=addMsg("...","bot");
 
   try{
     const r=await fetch("/api/chat",{
@@ -718,20 +1251,36 @@ async function sendMessage(){
       body:JSON.stringify({prompt:text,history:[],session_id:activeSessionId})
     });
     const d=await r.json();
-    messages.lastChild.remove();
+    typingMsg.remove();
     addMsg(d.response||"Error","bot");
     await loadHistoryList();
   }catch{
-    messages.lastChild.remove();
+    typingMsg.remove();
     addMsg("Network error.","bot");
   }
 }
 
 sendBtn.onclick=sendMessage;
+input.addEventListener("input",autoResizeInput);
 input.addEventListener("keydown",e=>{
   if(e.key==="Enter" && !e.shiftKey){
     e.preventDefault();
     sendMessage();
+  }
+});
+
+codeModalCloseBtn.onclick=closeCodeModal;
+codeModal.onclick=(e)=>{
+  if(e.target===codeModal) closeCodeModal();
+};
+codeModalCopyBtn.onclick=()=>{
+  if(!codeModalCurrentCode) return;
+  navigator.clipboard.writeText(codeModalCurrentCode);
+  showToast("Code copied.");
+};
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Escape" && codeModal.classList.contains("open")){
+    closeCodeModal();
   }
 });
 
