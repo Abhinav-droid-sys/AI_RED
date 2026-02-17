@@ -26,30 +26,6 @@ html,body{
     overflow:hidden;
 }
 
-/* BACKGROUND VIDEO */
-.video-wrap{position:fixed;inset:0;z-index:0}
-.video-bg{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    filter:brightness(.45) saturate(1.1);
-}
-.video-blur{
-    position:absolute;
-    inset:0;
-    backdrop-filter:blur(8px);
-    background:rgba(10,10,11,.35);
-}
-.bokeh-overlay{
-    position:absolute;
-    inset:0;
-    background:
-        radial-gradient(circle at 30% 20%,rgba(255,59,48,.15),transparent 45%),
-        radial-gradient(circle at 70% 80%,rgba(255,107,107,.12),transparent 50%),
-        linear-gradient(180deg,rgba(10,10,11,.6),rgba(10,10,11,.95));
-}
-
-/* LOGIN CARD */
 .login-container{
     position:relative;
     z-index:2;
@@ -57,19 +33,87 @@ html,body{
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right)
-            env(safe-area-inset-bottom) env(safe-area-inset-left);
+    padding:14px;
 }
+
+.split-grid{
+    width:min(1120px,100%);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    align-items:stretch;
+}
+
+.video-card,
 .login-card{
-    width:100%;
-    max-width:420px;
-    margin:16px;
-    padding:44px 30px;
+    border-radius:24px;
+    border:1px solid var(--glass-border);
     background:var(--glass);
     backdrop-filter:blur(24px) saturate(1.3);
-    border:1px solid var(--glass-border);
-    border-radius:24px;
     box-shadow:0 25px 45px -10px rgba(0,0,0,.5);
+    min-height:680px;
+}
+
+.video-card{
+    position:relative;
+    overflow:hidden;
+}
+
+.video-bg{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    filter:brightness(.52) saturate(1.12);
+}
+
+.video-blur{
+    position:absolute;
+    inset:0;
+    backdrop-filter:blur(7px);
+    background:rgba(10,10,11,.3);
+}
+
+.bokeh-overlay{
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(circle at 30% 20%,rgba(255,59,48,.15),transparent 45%),
+        radial-gradient(circle at 70% 80%,rgba(255,107,107,.12),transparent 50%),
+        linear-gradient(180deg,rgba(10,10,11,.4),rgba(10,10,11,.8));
+}
+
+.video-label{
+    position:absolute;
+    left:16px;
+    bottom:16px;
+    font-size:12px;
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.2);
+    background:rgba(10,10,11,.35);
+    color:#ececf4;
+}
+
+.login-card{
+    width:100%;
+    max-width:none;
+    margin:0;
+    padding:44px 30px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+
+@media (max-width:980px){
+    .split-grid{
+        grid-template-columns:1fr;
+    }
+    .video-card{
+        display:none;
+    }
+    .login-card{
+        min-height:auto;
+    }
 }
 
 .brand{text-align:center;margin-bottom:12px}
@@ -272,15 +316,18 @@ html,body{
 
 <body>
 
-<div class="video-wrap">
-    <video class="video-bg" autoplay muted loop playsinline>
-        <source src="/static/bg_particle.mp4" type="video/mp4">
+<div class="login-container">
+<div class="split-grid">
+
+<div class="video-card" id="videoCard">
+    <video class="video-bg" id="promoVideo" autoplay muted loop playsinline>
+        <source id="promoSource" src="/static/bg_particle.mp4" type="video/mp4">
     </video>
     <div class="video-blur"></div>
     <div class="bokeh-overlay"></div>
+    <div class="video-label"><i class="fas fa-circle-play"></i> RED Motion</div>
 </div>
 
-<div class="login-container">
 <div class="login-card">
 
 <div class="brand">
@@ -340,6 +387,8 @@ html,body{
 </div>
 
 </div>
+
+</div>
 </div>
 
 <script type="module">
@@ -384,6 +433,36 @@ const emailChip = document.getElementById("emailChip");
 const rememberedEmail = document.getElementById("rememberedEmail");
 const loginBtn = document.getElementById("loginBtn");
 const googleBtn = document.getElementById("googleBtn");
+const promoVideo = document.getElementById("promoVideo");
+const promoSource = document.getElementById("promoSource");
+const videoCard = document.getElementById("videoCard");
+
+const originalVideoSrc = promoSource?.getAttribute("src") || "";
+
+function syncVideoForDevice() {
+    const isPhone = window.matchMedia("(max-width: 980px)").matches;
+    if (!promoVideo || !promoSource || !videoCard) return;
+
+    if (isPhone) {
+        promoVideo.pause();
+        promoVideo.removeAttribute("autoplay");
+        promoSource.setAttribute("src", "");
+        promoVideo.load();
+        videoCard.style.display = "none";
+    } else {
+        videoCard.style.display = "";
+        if (!promoSource.getAttribute("src")) {
+            promoSource.setAttribute("src", originalVideoSrc);
+            promoVideo.load();
+        }
+        promoVideo.setAttribute("autoplay", "autoplay");
+        promoVideo.muted = true;
+        promoVideo.play().catch(() => {});
+    }
+}
+
+syncVideoForDevice();
+window.addEventListener("resize", syncVideoForDevice);
 
 function setGreeting(){
     const hour = new Date().getHours();
