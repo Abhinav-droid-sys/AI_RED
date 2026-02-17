@@ -81,6 +81,29 @@ html,body{
     -webkit-text-fill-color:transparent;
 }
 .brand p{color:var(--muted)}
+.greeting{
+    margin:8px 0 18px;
+    text-align:center;
+}
+.greeting-title{
+    font-size:14px;
+    color:#e7e7ef;
+    margin-bottom:8px;
+}
+.email-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.08);
+    font-size:12px;
+    color:#d7d7e2;
+}
+.email-chip i{
+    color:#ffb3ae;
+}
 
 .form-group{margin-bottom:20px}
 .form-group input{
@@ -91,6 +114,72 @@ html,body{
     border-radius:16px;
     color:#fff;
     font-size:16px;
+}
+.password-wrap{
+    position:relative;
+}
+.password-wrap input{
+    padding-right:48px;
+}
+.toggle-pass{
+    position:absolute;
+    right:10px;
+    top:50%;
+    transform:translateY(-50%);
+    border:none;
+    background:none;
+    color:#cfd0da;
+    cursor:pointer;
+    width:30px;
+    height:30px;
+    border-radius:8px;
+}
+.toggle-pass:hover{
+    background:rgba(255,255,255,.08);
+}
+.caps-warning{
+    margin-top:8px;
+    color:#ffb9b9;
+    font-size:12px;
+    display:none;
+}
+.password-meta{
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+}
+.strength{
+    flex:1;
+}
+.strength-bar{
+    width:100%;
+    height:6px;
+    border-radius:999px;
+    background:rgba(255,255,255,.12);
+    overflow:hidden;
+}
+.strength-fill{
+    height:100%;
+    width:0%;
+    border-radius:999px;
+    transition:width .18s ease, background .18s ease;
+    background:#9B9BA6;
+}
+.strength-text{
+    margin-top:6px;
+    font-size:12px;
+    color:var(--muted);
+}
+.forgot-link{
+    font-size:12px;
+    color:#ffb3ae;
+    text-decoration:none;
+    white-space:nowrap;
+}
+.forgot-link:hover{
+    text-decoration:underline;
 }
 
 .login-btn{
@@ -155,6 +244,29 @@ html,body{
     font-size:13px;
     display:none;
 }
+.trust-strip{
+    margin-top:18px;
+    padding-top:14px;
+    border-top:1px solid rgba(255,255,255,.1);
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:center;
+}
+.trust-item{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    color:#d9d9e2;
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:999px;
+    padding:6px 9px;
+}
+.trust-item i{
+    color:#ffb3ae;
+}
 </style>
 </head>
 
@@ -176,12 +288,33 @@ html,body{
     <p id="modeTitle">AI Assistant</p>
 </div>
 
+<div class="greeting">
+    <div class="greeting-title" id="greetText">Welcome back</div>
+    <div class="email-chip" id="emailChip" style="display:none;">
+        <i class="fas fa-at"></i>
+        <span id="rememberedEmail"></span>
+    </div>
+</div>
+
 <div class="form-group">
     <input type="email" id="email" placeholder="Email address">
 </div>
 
 <div class="form-group">
-    <input type="password" id="password" placeholder="Password">
+    <div class="password-wrap">
+        <input type="password" id="password" placeholder="Password">
+        <button class="toggle-pass" id="togglePass" type="button" aria-label="Show password">
+            <i class="far fa-eye"></i>
+        </button>
+    </div>
+    <div class="caps-warning" id="capsWarning"><i class="fas fa-triangle-exclamation"></i> Caps Lock is on</div>
+    <div class="password-meta">
+        <div class="strength">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <div class="strength-text" id="strengthText">Password strength</div>
+        </div>
+        <a class="forgot-link" href="#" id="forgotLink">Forgot?</a>
+    </div>
 </div>
 
 <button class="login-btn" id="loginBtn">
@@ -200,6 +333,12 @@ html,body{
 
 <div class="error" id="errorBox"></div>
 
+<div class="trust-strip">
+    <div class="trust-item"><i class="fas fa-shield-halved"></i> Encrypted Auth</div>
+    <div class="trust-item"><i class="fas fa-user-check"></i> Verified Email</div>
+    <div class="trust-item"><i class="fas fa-lock"></i> Privacy First</div>
+</div>
+
 </div>
 </div>
 
@@ -211,6 +350,7 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     sendEmailVerification,
+    sendPasswordResetEmail,
     GoogleAuthProvider,
     signInWithPopup,
     signOut
@@ -234,8 +374,91 @@ const modeTitle = document.getElementById("modeTitle");
 const errorBox = document.getElementById("errorBox");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
+const togglePass = document.getElementById("togglePass");
+const capsWarning = document.getElementById("capsWarning");
+const strengthFill = document.getElementById("strengthFill");
+const strengthText = document.getElementById("strengthText");
+const forgotLink = document.getElementById("forgotLink");
+const greetText = document.getElementById("greetText");
+const emailChip = document.getElementById("emailChip");
+const rememberedEmail = document.getElementById("rememberedEmail");
 const loginBtn = document.getElementById("loginBtn");
 const googleBtn = document.getElementById("googleBtn");
+
+function setGreeting(){
+    const hour = new Date().getHours();
+    if (hour < 12) greetText.textContent = "Good morning";
+    else if (hour < 18) greetText.textContent = "Good afternoon";
+    else greetText.textContent = "Good evening";
+    const savedEmail = localStorage.getItem("userEmail") || "";
+    if (savedEmail) {
+        rememberedEmail.textContent = savedEmail;
+        emailChip.style.display = "inline-flex";
+        if (!emailInput.value) emailInput.value = savedEmail;
+    }
+}
+
+function updateStrength() {
+    const p = passwordInput.value || "";
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+    if (/\d/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    const pct = (score / 4) * 100;
+    strengthFill.style.width = `${pct}%`;
+    if (score <= 1) {
+        strengthFill.style.background = "#ff7a7a";
+        strengthText.textContent = "Weak";
+    } else if (score <= 2) {
+        strengthFill.style.background = "#ffc46b";
+        strengthText.textContent = "Medium";
+    } else if (score === 3) {
+        strengthFill.style.background = "#8fd58c";
+        strengthText.textContent = "Strong";
+    } else {
+        strengthFill.style.background = "#57c66b";
+        strengthText.textContent = "Very strong";
+    }
+}
+
+setGreeting();
+updateStrength();
+
+togglePass.onclick = () => {
+    const isHidden = passwordInput.type === "password";
+    passwordInput.type = isHidden ? "text" : "password";
+    togglePass.innerHTML = isHidden ? '<i class="far fa-eye-slash"></i>' : '<i class="far fa-eye"></i>';
+};
+
+passwordInput.addEventListener("keyup", (e) => {
+    capsWarning.style.display = e.getModifierState && e.getModifierState("CapsLock") ? "block" : "none";
+    updateStrength();
+});
+passwordInput.addEventListener("keydown", (e) => {
+    capsWarning.style.display = e.getModifierState && e.getModifierState("CapsLock") ? "block" : "none";
+});
+passwordInput.addEventListener("blur", () => {
+    capsWarning.style.display = "none";
+});
+
+forgotLink.onclick = async (e) => {
+    e.preventDefault();
+    try {
+        const email = (emailInput.value || "").trim();
+        if (!email) {
+            errorBox.textContent = "Enter your email first, then tap Forgot.";
+            errorBox.style.display = "block";
+            return;
+        }
+        await sendPasswordResetEmail(auth, email);
+        errorBox.textContent = "Password reset email sent.";
+        errorBox.style.display = "block";
+    } catch (err) {
+        errorBox.textContent = err.message || "Unable to send reset email.";
+        errorBox.style.display = "block";
+    }
+};
 
 onAuthStateChanged(auth, async (user) => {
     if (!user || !user.emailVerified) return;
