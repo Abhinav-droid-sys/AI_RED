@@ -149,6 +149,52 @@ def health():
     return jsonify({"status": "ok", "time": datetime.utcnow().isoformat() + "Z"}), 200
 
 
+@app.route("/api/voice/process", methods=["POST"])
+def process_voice_text():
+    """
+    Normalize and translate spoken input text to a clean prompt.
+    Request JSON:
+    {
+      "text": "spoken transcript",
+      "target_lang": "en"
+    }
+    """
+    try:
+        data = request.get_json(force=True)
+        text = (data.get("text") or "").strip()
+        target_lang = (data.get("target_lang") or "en").strip().lower()
+
+        if not text:
+            return jsonify({"success": False, "error": "text is required"}), 400
+
+        instruction = (
+            "You are a voice transcript post-processor. "
+            "Clean obvious ASR mistakes when confidence is high, normalize punctuation, "
+            "and translate to natural {} if input is another language. "
+            "Do not add meaning, explanations, or extra text. "
+            "Return only the final cleaned sentence."
+        ).format("English" if target_lang == "en" else target_lang)
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": text},
+            ],
+            temperature=0.1,
+            max_tokens=300,
+            top_p=1.0,
+            stream=False,
+        )
+        processed = (response.choices[0].message.content or "").strip()
+        if not processed:
+            processed = text
+        return jsonify({"success": True, "processed_text": processed})
+    except Exception as e:
+        print(f"[VOICE PROCESS ERROR] {e}")
+        return jsonify({"success": False, "processed_text": text if 'text' in locals() else ""}), 200
+
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     """
