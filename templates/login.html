@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -33,86 +33,59 @@ html,body{
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:14px;
+    padding:18px;
 }
 
-.split-grid{
-    width:min(1120px,100%);
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:14px;
-    align-items:stretch;
+.video-bg{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    filter:brightness(.42) saturate(1.15);
+    z-index:0;
 }
 
-.video-card,
+.video-blur{
+    position:fixed;
+    inset:0;
+    backdrop-filter:blur(12px);
+    background:rgba(5,5,7,.42);
+    z-index:1;
+}
+
+.bokeh-overlay{
+    position:fixed;
+    inset:0;
+    background:
+        radial-gradient(circle at 20% 18%,rgba(255,59,48,.2),transparent 42%),
+        radial-gradient(circle at 78% 76%,rgba(255,107,107,.14),transparent 50%),
+        linear-gradient(180deg,rgba(8,8,10,.56),rgba(8,8,10,.85));
+    z-index:1;
+}
+
 .login-card{
+    position:relative;
+    z-index:2;
+    width:min(620px,100%);
+    margin:0;
+    padding:44px 30px;
     border-radius:24px;
     border:1px solid var(--glass-border);
     background:var(--glass);
     backdrop-filter:blur(24px) saturate(1.3);
     box-shadow:0 25px 45px -10px rgba(0,0,0,.5);
-    min-height:680px;
-}
-
-.video-card{
-    position:relative;
-    overflow:hidden;
-}
-
-.video-bg{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    filter:brightness(.52) saturate(1.12);
-}
-
-.video-blur{
-    position:absolute;
-    inset:0;
-    backdrop-filter:blur(7px);
-    background:rgba(10,10,11,.3);
-}
-
-.bokeh-overlay{
-    position:absolute;
-    inset:0;
-    background:
-        radial-gradient(circle at 30% 20%,rgba(255,59,48,.15),transparent 45%),
-        radial-gradient(circle at 70% 80%,rgba(255,107,107,.12),transparent 50%),
-        linear-gradient(180deg,rgba(10,10,11,.4),rgba(10,10,11,.8));
-}
-
-.video-label{
-    position:absolute;
-    left:16px;
-    bottom:16px;
-    font-size:12px;
-    padding:8px 12px;
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,.2);
-    background:rgba(10,10,11,.35);
-    color:#ececf4;
-}
-
-.login-card{
-    width:100%;
-    max-width:none;
-    margin:0;
-    padding:44px 30px;
     display:flex;
     flex-direction:column;
     justify-content:center;
+    min-height:min(760px,95svh);
+    overflow:auto;
 }
 
 @media (max-width:980px){
-    .split-grid{
-        grid-template-columns:1fr;
-    }
-    .video-card{
-        display:none;
-    }
     .login-card{
         min-height:auto;
+        padding:32px 20px;
     }
 }
 
@@ -317,16 +290,11 @@ html,body{
 <body>
 
 <div class="login-container">
-<div class="split-grid">
-
-<div class="video-card" id="videoCard">
-    <video class="video-bg" id="promoVideo" autoplay muted loop playsinline>
-        <source id="promoSource" src="/static/bg_particle.mp4" type="video/mp4">
-    </video>
-    <div class="video-blur"></div>
-    <div class="bokeh-overlay"></div>
-    <div class="video-label"><i class="fas fa-circle-play"></i> RED Motion</div>
-</div>
+<video class="video-bg" id="promoVideo" autoplay muted loop playsinline>
+    <source id="promoSource" src="/static/bg_particle.mp4" type="video/mp4">
+</video>
+<div class="video-blur"></div>
+<div class="bokeh-overlay"></div>
 
 <div class="login-card">
 
@@ -375,7 +343,7 @@ html,body{
 </button>
 
 <div class="switch-mode" id="switchMode">
-    Don’t have an account? <span>Create one</span>
+    Don't have an account? <span>Create one</span>
 </div>
 
 <div class="error" id="errorBox"></div>
@@ -384,8 +352,6 @@ html,body{
     <div class="trust-item"><i class="fas fa-shield-halved"></i> Encrypted Auth</div>
     <div class="trust-item"><i class="fas fa-user-check"></i> Verified Email</div>
     <div class="trust-item"><i class="fas fa-lock"></i> Privacy First</div>
-</div>
-
 </div>
 
 </div>
@@ -434,35 +400,10 @@ const rememberedEmail = document.getElementById("rememberedEmail");
 const loginBtn = document.getElementById("loginBtn");
 const googleBtn = document.getElementById("googleBtn");
 const promoVideo = document.getElementById("promoVideo");
-const promoSource = document.getElementById("promoSource");
-const videoCard = document.getElementById("videoCard");
 
-const originalVideoSrc = promoSource?.getAttribute("src") || "";
-
-function syncVideoForDevice() {
-    const isPhone = window.matchMedia("(max-width: 980px)").matches;
-    if (!promoVideo || !promoSource || !videoCard) return;
-
-    if (isPhone) {
-        promoVideo.pause();
-        promoVideo.removeAttribute("autoplay");
-        promoSource.setAttribute("src", "");
-        promoVideo.load();
-        videoCard.style.display = "none";
-    } else {
-        videoCard.style.display = "";
-        if (!promoSource.getAttribute("src")) {
-            promoSource.setAttribute("src", originalVideoSrc);
-            promoVideo.load();
-        }
-        promoVideo.setAttribute("autoplay", "autoplay");
-        promoVideo.muted = true;
-        promoVideo.play().catch(() => {});
-    }
+if (promoVideo) {
+    promoVideo.play().catch(() => {});
 }
-
-syncVideoForDevice();
-window.addEventListener("resize", syncVideoForDevice);
 
 function setGreeting(){
     const hour = new Date().getHours();
@@ -556,7 +497,7 @@ switchMode.onclick = () => {
         modeTitle.textContent = "Verify once. Use forever.";
     } else {
         btnText.textContent = "Enter RED";
-        switchMode.innerHTML = `Don’t have an account? <span>Create one</span>`;
+        switchMode.innerHTML = `Don't have an account? <span>Create one</span>`;
         modeTitle.textContent = "AI Assistant";
     }
 };
@@ -607,3 +548,4 @@ googleBtn.onclick = async () => {
 
 </body>
 </html>
+
