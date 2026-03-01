@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, render_template, render_template_string
 from groq import Groq
 import os
+import json
+import base64
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 import firebase_admin
@@ -61,6 +63,16 @@ SYSTEM_PROMPT = (
     "Be helpful, concise, and friendly."
 )
 
+TEXT_EXTENSIONS = {
+    ".txt", ".md", ".csv", ".json", ".xml", ".yaml", ".yml",
+    ".py", ".js", ".ts", ".tsx", ".jsx", ".html", ".css", ".java",
+    ".c", ".cpp", ".h", ".hpp", ".go", ".rs", ".rb", ".php", ".sql",
+    ".sh", ".ps1", ".log", ".ini", ".toml", ".cfg"
+}
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+MAX_TEXT_EXTRACT_BYTES = 120_000
+VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "llama-3.2-11b-vision-preview")
+
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -86,6 +98,90 @@ def chats_collection(user_id: str):
 
 def chat_doc_ref(user_id: str, session_id: str):
     return chats_collection(user_id).document(session_id)
+
+
+def parse_bool(raw_value) -> bool:
+    return str(raw_value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def load_incognito_history(raw_history):
+    if isinstance(raw_history, list):
+        return raw_history
+    if isinstance(raw_history, str) and raw_history.strip():
+        try:
+            parsed = json.loads(raw_history)
+            return parsed if isinstance(parsed, list) else []
+        except Exception:
+            return []
+    return []
+
+
+def build_messages(prompt: str, user_id: str, session_id: str, is_incognito: bool, incognito_history: list):
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    existing_chat = {}
+
+    if is_incognito:
+        history = incognito_history or []
+    else:
+        existing_doc = chat_doc_ref(user_id, session_id).get()
+        existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
+        history = existing_chat.get("history", [])
+
+    for msg in history:
+        role = "user" if msg.get("role") == "user" else "assistant"
+        content = msg.get("content", "")
+        if content:
+            messages.append({"role": role, "content": content})
+
+    messages.append({"role": "user", "content": prompt})
+    return messages, existing_chat
+
+
+def persist_chat(user_id: str, session_id: str, prompt: str, assistant_text: str):
+    existing_doc = chat_doc_ref(user_id, session_id).get()
+    existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
+    existing_history = existing_chat.get("history", [])
+    is_first_message = not existing_history
+    timestamp = now_utc_iso()
+    updated_history = existing_history + [
+        {"role": "user", "content": prompt},
+        {"role": "assistant", "content": assistant_text},
+    ]
+
+    if is_first_message:
+        chat_title = generate_chat_title(prompt)
+    else:
+        chat_title = existing_chat.get("title")
+
+    chat_doc_ref(user_id, session_id).set(
+        {
+            "id": session_id,
+            "user_id": user_id,
+            "title": chat_title or "New Chat",
+            "history": updated_history,
+            "preview": history_preview(updated_history),
+            "created_at": existing_chat.get("created_at") or timestamp,
+            "updated_at": timestamp,
+        }
+    )
+    return chat_title
+
+
+def extract_text_from_upload(filename: str, mimetype: str, file_bytes: bytes):
+    ext = os.path.splitext(filename or "")[1].lower()
+    is_probably_text = (mimetype or "").startswith("text/") or ext in TEXT_EXTENSIONS
+    if not is_probably_text:
+        return "", False
+
+    clipped = file_bytes[:MAX_TEXT_EXTRACT_BYTES]
+    truncated = len(file_bytes) > MAX_TEXT_EXTRACT_BYTES
+
+    for enc in ("utf-8", "utf-16", "latin-1"):
+        try:
+            return clipped.decode(enc), truncated
+        except Exception:
+            continue
+    return clipped.decode("utf-8", errors="ignore"), truncated
 
 def generate_chat_title(first_message: str) -> str:
     """Generate a short title for the chat based on first user message."""
@@ -266,26 +362,7 @@ def chat():
         assistant_text = owner_profile_override(prompt)
 
         if not assistant_text:
-            # Build messages for Groq
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-
-            if is_incognito:
-                for msg in incognito_history:
-                    role = "user" if msg.get("role") == "user" else "assistant"
-                    content = msg.get("content", "")
-                    if content:
-                        messages.append({"role": role, "content": content})
-            else:
-                existing_doc = chat_doc_ref(user_id, session_id).get()
-                existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
-                stored_history = existing_chat.get("history", [])
-                for msg in stored_history:
-                    role = "user" if msg.get("role") == "user" else "assistant"
-                    content = msg.get("content", "")
-                    if content:
-                        messages.append({"role": role, "content": content})
-
-            messages.append({"role": "user", "content": prompt})
+            messages, _ = build_messages(prompt, user_id, session_id, is_incognito, incognito_history)
 
             # Call Groq
             response = client.chat.completions.create(
@@ -299,34 +376,8 @@ def chat():
             assistant_text = response.choices[0].message.content
 
         chat_title = None
-
         if not is_incognito:
-            existing_doc = chat_doc_ref(user_id, session_id).get()
-            existing_chat = existing_doc.to_dict() if existing_doc.exists else {}
-            existing_history = existing_chat.get("history", [])
-            is_first_message = not existing_history
-            timestamp = now_utc_iso()
-            updated_history = existing_history + [
-                {"role": "user", "content": prompt},
-                {"role": "assistant", "content": assistant_text},
-            ]
-
-            if is_first_message:
-                chat_title = generate_chat_title(prompt)
-            else:
-                chat_title = existing_chat.get("title")
-
-            chat_doc_ref(user_id, session_id).set(
-                {
-                    "id": session_id,
-                    "user_id": user_id,
-                    "title": chat_title or "New Chat",
-                    "history": updated_history,
-                    "preview": history_preview(updated_history),
-                    "created_at": existing_chat.get("created_at") or timestamp,
-                    "updated_at": timestamp,
-                }
-            )
+            chat_title = persist_chat(user_id, session_id, prompt, assistant_text)
 
         return jsonify({"success": True, "response": assistant_text, "chat_title": chat_title})
 
@@ -336,6 +387,128 @@ def chat():
 
         if "rate" in error_msg.lower() or "429" in error_msg:
             return jsonify({"success": False, "error": "Rate limit reached. Please wait a moment. (Free tier: 30 requests/minute)"}), 429
+        return jsonify({"success": False, "error": "Internal server error"}), 500
+
+
+@app.route("/api/chat/upload", methods=["POST"])
+def chat_upload():
+    """
+    Multipart request format:
+      - prompt: optional user text
+      - session_id: chat session id
+      - is_incognito: true/false
+      - history: optional JSON string list for incognito mode
+      - file: uploaded file/image
+    """
+    try:
+        prompt = (request.form.get("prompt") or "").strip()
+        session_id = (request.form.get("session_id", "default") or "default").strip()
+        user_id = request_user_id()
+        is_incognito = parse_bool(request.form.get("is_incognito"))
+        incognito_history = load_incognito_history(request.form.get("history"))
+        upload = request.files.get("file")
+
+        if not upload:
+            return jsonify({"success": False, "error": "No file provided"}), 400
+
+        filename = (upload.filename or "attachment").strip() or "attachment"
+        mimetype = (upload.mimetype or "application/octet-stream").strip().lower()
+        file_bytes = upload.read() or b""
+
+        if not file_bytes:
+            return jsonify({"success": False, "error": "Uploaded file is empty"}), 400
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            return jsonify({"success": False, "error": "File too large. Max size is 8MB."}), 400
+
+        effective_prompt = prompt or "Please analyze this attachment and summarize key insights."
+        assistant_text = owner_profile_override(effective_prompt) if not file_bytes else None
+        file_summary = f"{filename} ({mimetype}, {len(file_bytes)} bytes)"
+
+        if not assistant_text:
+            if mimetype.startswith("image/"):
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                if is_incognito:
+                    history = incognito_history
+                else:
+                    history_doc = chat_doc_ref(user_id, session_id).get()
+                    history = (history_doc.to_dict() or {}).get("history", []) if history_doc.exists else []
+                for msg in history:
+                    role = "user" if msg.get("role") == "user" else "assistant"
+                    content = msg.get("content", "")
+                    if content:
+                        messages.append({"role": role, "content": content})
+
+                encoded = base64.b64encode(file_bytes).decode("utf-8")
+                user_payload = [
+                    {
+                        "type": "text",
+                        "text": (
+                            f"{effective_prompt}\n\n"
+                            f"Attached image: {filename} ({mimetype}). "
+                            "Describe it, extract useful details, and answer the user query."
+                        ),
+                    },
+                    {"type": "image_url", "image_url": {"url": f"data:{mimetype};base64,{encoded}"}},
+                ]
+                messages.append({"role": "user", "content": user_payload})
+
+                response = client.chat.completions.create(
+                    model=VISION_MODEL,
+                    messages=messages,
+                    temperature=0.4,
+                    max_tokens=1800,
+                    top_p=1.0,
+                    stream=False,
+                )
+                assistant_text = response.choices[0].message.content
+            else:
+                extracted_text, was_truncated = extract_text_from_upload(filename, mimetype, file_bytes)
+                if extracted_text.strip():
+                    text_notice = "\n\n[Note: File text was truncated for analysis.]" if was_truncated else ""
+                    analysis_prompt = (
+                        f"{effective_prompt}\n\n"
+                        f"Attached file: {filename}\n"
+                        f"MIME type: {mimetype}\n\n"
+                        f"File content:\n{extracted_text}{text_notice}"
+                    )
+                else:
+                    analysis_prompt = (
+                        f"{effective_prompt}\n\n"
+                        f"Attached file: {filename}\n"
+                        f"MIME type: {mimetype}\n"
+                        "The file is binary or unsupported for text extraction. "
+                        "Respond based only on metadata and ask the user for a supported text format if needed."
+                    )
+
+                messages, _ = build_messages(analysis_prompt, user_id, session_id, is_incognito, incognito_history)
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=messages,
+                    temperature=0.5,
+                    max_tokens=1800,
+                    top_p=1.0,
+                    stream=False,
+                )
+                assistant_text = response.choices[0].message.content
+
+        chat_title = None
+        if not is_incognito:
+            prompt_to_store = f"{effective_prompt}\n\n[Attachment: {file_summary}]"
+            chat_title = persist_chat(user_id, session_id, prompt_to_store, assistant_text)
+
+        return jsonify(
+            {
+                "success": True,
+                "response": assistant_text,
+                "chat_title": chat_title,
+                "file_summary": file_summary,
+            }
+        )
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[UPLOAD CHAT ERROR] {error_msg}")
+        if "rate" in error_msg.lower() or "429" in error_msg:
+            return jsonify({"success": False, "error": "Rate limit reached. Please wait a moment."}), 429
         return jsonify({"success": False, "error": "Internal server error"}), 500
 
 

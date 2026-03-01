@@ -542,6 +542,61 @@ textarea{
   color:#ffd4d4;
 }
 
+.attach-btn{
+  width:48px;
+  height:48px;
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  color:#f0f0f6;
+  font-size:16px;
+  display:inline-grid;
+  place-items:center;
+  cursor:pointer;
+  transition:background 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+
+.attach-btn:hover{
+  background:rgba(255,255,255,0.13);
+  border-color:rgba(255,255,255,0.28);
+}
+
+.attach-btn:active{
+  transform:translateY(1px);
+}
+
+.attach-btn.has-file{
+  background:rgba(255,59,48,0.16);
+  border-color:rgba(255,107,107,0.45);
+  color:#ffd4d4;
+}
+
+.file-pill{
+  margin-top:8px;
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.14);
+  font-size:12px;
+  color:#e8e8f1;
+}
+
+.file-pill.visible{
+  display:flex;
+}
+
+.file-pill button{
+  border:none;
+  background:none;
+  color:#ffb3ae;
+  cursor:pointer;
+  font-size:13px;
+}
+
 /* ===== CODE ===== */
 .inline-code{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -814,6 +869,12 @@ textarea{
     font-size:12px;
   }
 
+  .attach-btn{
+    width:44px;
+    height:44px;
+    border-radius:10px;
+  }
+
   .msg-footer .action-btn{
     width:30px;
     height:30px;
@@ -881,11 +942,19 @@ textarea{
 
   <div class="input-wrap">
     <div class="input-row">
+      <button class="attach-btn" id="attachBtn" type="button" title="Attach file">
+        <i class="fas fa-paperclip"></i>
+      </button>
       <textarea id="input" rows="1" placeholder="Ask RED..."></textarea>
       <button class="mic-btn" id="micBtn" type="button"><i class="fas fa-microphone"></i> Voice</button>
       <button class="send" id="sendBtn">
         <i class="fas fa-paper-plane"></i>
       </button>
+    </div>
+    <input id="fileInput" type="file" hidden>
+    <div class="file-pill" id="fileMeta">
+      <span id="fileMetaText"></span>
+      <button type="button" id="clearFileBtn" title="Remove attachment"><i class="fas fa-xmark"></i></button>
     </div>
   </div>
 </div>
@@ -962,6 +1031,11 @@ const messages=document.getElementById("messages");
 const bgA=document.getElementById("bgA");
 const bgB=document.getElementById("bgB");
 const input=document.getElementById("input");
+const attachBtn=document.getElementById("attachBtn");
+const fileInput=document.getElementById("fileInput");
+const fileMeta=document.getElementById("fileMeta");
+const fileMetaText=document.getElementById("fileMetaText");
+const clearFileBtn=document.getElementById("clearFileBtn");
 const micBtn=document.getElementById("micBtn");
 const sendBtn=document.getElementById("sendBtn");
 const historyBtn=document.getElementById("historyBtn");
@@ -990,6 +1064,7 @@ let voiceRecognizer=null;
 let isVoiceListening=false;
 let voiceShouldSubmit=false;
 let finalVoiceText="";
+let pendingFile=null;
 
 const STOCK_BACKGROUNDS=[
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80",
@@ -1041,10 +1116,41 @@ function getUserId(){
 
 function authHeaders(){
   return {
+    ...authBaseHeaders(),
     "Content-Type":"application/json",
+  };
+}
+
+function authBaseHeaders(){
+  return {
     "Authorization":`Bearer ${localStorage.getItem("idToken") || ""}`,
     "X-User-Id":getUserId()
   };
+}
+
+function formatBytes(bytes){
+  if(bytes < 1024) return `${bytes} B`;
+  if(bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function clearPendingFile(){
+  pendingFile=null;
+  fileInput.value="";
+  fileMeta.classList.remove("visible");
+  fileMetaText.textContent="";
+  attachBtn.classList.remove("has-file");
+}
+
+function setPendingFile(file){
+  if(!file){
+    clearPendingFile();
+    return;
+  }
+  pendingFile=file;
+  fileMetaText.textContent=`${file.name} (${formatBytes(file.size)})`;
+  fileMeta.classList.add("visible");
+  attachBtn.classList.add("has-file");
 }
 
 function setActiveSession(sessionId){
@@ -1549,25 +1655,49 @@ function autoResizeInput(){
 async function sendMessage(forcedText="",options={}){
   const {asRegenerate=false}=options;
   const text=(forcedText || input.value).trim();
-  if(!text) return;
+  const attachedFile=pendingFile;
+  const hasAttachment=Boolean(attachedFile);
+  if(!text && !hasAttachment) return;
   if(!activeSessionId){
     setActiveSession(createSessionId());
   }
   if(!asRegenerate){
-    addMsg(text,"user");
+    let userLabel=text || "Please analyze this attachment.";
+    if(hasAttachment){
+      userLabel=`${userLabel}\n[Attached: ${attachedFile.name}]`;
+    }
+    addMsg(userLabel,"user");
     input.value="";
+    clearPendingFile();
     autoResizeInput();
   }
   const typingMsg=addMsg("...","bot");
 
   try{
-    const r=await fetch("/api/chat",{
-      method:"POST",
-      headers:authHeaders(),
-      body:JSON.stringify({prompt:text,history:[],session_id:activeSessionId})
-    });
+    let r;
+    if(hasAttachment){
+      const formData=new FormData();
+      formData.append("prompt",text);
+      formData.append("session_id",activeSessionId);
+      formData.append("file",attachedFile);
+      r=await fetch("/api/chat/upload",{
+        method:"POST",
+        headers:authBaseHeaders(),
+        body:formData
+      });
+    }else{
+      r=await fetch("/api/chat",{
+        method:"POST",
+        headers:authHeaders(),
+        body:JSON.stringify({prompt:text,history:[],session_id:activeSessionId})
+      });
+    }
     const d=await r.json();
     typingMsg.remove();
+    if(!d.success){
+      addMsg(d.error || "Error","bot");
+      return;
+    }
     addMsg(d.response||"Error","bot");
     await loadHistoryList();
   }catch{
@@ -1577,6 +1707,9 @@ async function sendMessage(forcedText="",options={}){
 }
 
 sendBtn.onclick=()=>sendMessage();
+attachBtn.onclick=()=>fileInput.click();
+fileInput.addEventListener("change",()=>setPendingFile(fileInput.files?.[0] || null));
+clearFileBtn.onclick=()=>clearPendingFile();
 micBtn.onclick=toggleVoiceInput;
 input.addEventListener("input",autoResizeInput);
 input.addEventListener("keydown",e=>{
