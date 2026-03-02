@@ -71,15 +71,21 @@ TEXT_EXTENSIONS = {
 }
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 MAX_TEXT_EXTRACT_BYTES = 120_000
-VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "llama-3.2-11b-vision-preview")
+VISION_MODEL = (os.getenv("GROQ_VISION_MODEL") or "").strip()
 VISION_MODELS = []
 _vision_models_env = (os.getenv("GROQ_VISION_MODELS") or "").strip()
 if _vision_models_env:
-    VISION_MODELS = [m.strip() for m in _vision_models_env.split(",") if m.strip()]
-if VISION_MODEL and VISION_MODEL not in VISION_MODELS:
-    VISION_MODELS.append(VISION_MODEL)
-if "llama-3.2-11b-vision-preview" not in VISION_MODELS:
-    VISION_MODELS.append("llama-3.2-11b-vision-preview")
+    VISION_MODELS.extend([m.strip() for m in _vision_models_env.split(",") if m.strip()])
+if VISION_MODEL:
+    VISION_MODELS.insert(0, VISION_MODEL)
+
+# Keep defaults aligned with Groq deprecation guidance for vision models.
+for fallback_model in [
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+]:
+    if fallback_model not in VISION_MODELS:
+        VISION_MODELS.append(fallback_model)
 
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
