@@ -72,6 +72,14 @@ TEXT_EXTENSIONS = {
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 MAX_TEXT_EXTRACT_BYTES = 120_000
 VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "llama-3.2-11b-vision-preview")
+VISION_MODELS = []
+_vision_models_env = (os.getenv("GROQ_VISION_MODELS") or "").strip()
+if _vision_models_env:
+    VISION_MODELS = [m.strip() for m in _vision_models_env.split(",") if m.strip()]
+if VISION_MODEL and VISION_MODEL not in VISION_MODELS:
+    VISION_MODELS.append(VISION_MODEL)
+if "llama-3.2-11b-vision-preview" not in VISION_MODELS:
+    VISION_MODELS.append("llama-3.2-11b-vision-preview")
 
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -182,6 +190,21 @@ def extract_text_from_upload(filename: str, mimetype: str, file_bytes: bytes):
         except Exception:
             continue
     return clipped.decode("utf-8", errors="ignore"), truncated
+
+
+def normalize_response_text(content) -> str:
+    """Handle API responses that may return either plain text or typed chunks."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for chunk in content:
+            if isinstance(chunk, dict) and chunk.get("type") == "text":
+                txt = chunk.get("text", "")
+                if txt:
+                    parts.append(txt)
+        return "\n".join(parts).strip()
+    return str(content or "").strip()
 
 def generate_chat_title(first_message: str) -> str:
     """Generate a short title for the chat based on first user message."""
@@ -452,15 +475,44 @@ def chat_upload():
                 ]
                 messages.append({"role": "user", "content": user_payload})
 
-                response = client.chat.completions.create(
-                    model=VISION_MODEL,
-                    messages=messages,
-                    temperature=0.4,
-                    max_tokens=1800,
-                    top_p=1.0,
-                    stream=False,
-                )
-                assistant_text = response.choices[0].message.content
+                vision_errors = []
+                for vision_model in VISION_MODELS:
+                    try:
+                        response = client.chat.completions.create(
+                            model=vision_model,
+                            messages=messages,
+                            temperature=0.4,
+                            max_tokens=1800,
+                            top_p=1.0,
+                            stream=False,
+                        )
+                        assistant_text = normalize_response_text(response.choices[0].message.content)
+                        if assistant_text:
+                            break
+                    except Exception as vision_error:
+                        vision_errors.append(f"{vision_model}: {vision_error}")
+
+                if not assistant_text:
+                    detail = vision_errors[0] if vision_errors else "No response from vision model"
+                    detail_lower = detail.lower()
+                    if "model" in detail_lower and ("not found" in detail_lower or "decommissioned" in detail_lower):
+                        return jsonify(
+                            {
+                                "success": False,
+                                "error": (
+                                    "Image analysis model is unavailable. "
+                                    "Set GROQ_VISION_MODEL or GROQ_VISION_MODELS in .env to an active vision-capable model."
+                                ),
+                                "detail": detail[:260],
+                            }
+                        ), 500
+                    return jsonify(
+                        {
+                            "success": False,
+                            "error": "Image upload reached the AI provider but failed during analysis.",
+                            "detail": detail[:260],
+                        }
+                    ), 502
             else:
                 extracted_text, was_truncated = extract_text_from_upload(filename, mimetype, file_bytes)
                 if extracted_text.strip():
@@ -489,7 +541,7 @@ def chat_upload():
                     top_p=1.0,
                     stream=False,
                 )
-                assistant_text = response.choices[0].message.content
+                assistant_text = normalize_response_text(response.choices[0].message.content)
 
         chat_title = None
         if not is_incognito:
@@ -509,7 +561,7 @@ def chat_upload():
         print(f"[UPLOAD CHAT ERROR] {error_msg}")
         if "rate" in error_msg.lower() or "429" in error_msg:
             return jsonify({"success": False, "error": "Rate limit reached. Please wait a moment."}), 429
-        return jsonify({"success": False, "error": "Internal server error"}), 500
+        return jsonify({"success": False, "error": "Internal server error", "detail": error_msg[:260]}), 500
 
 
 @app.route("/api/chats", methods=["GET"])

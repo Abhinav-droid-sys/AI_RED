@@ -597,6 +597,31 @@ textarea{
   font-size:13px;
 }
 
+.user-text{
+  white-space:pre-wrap;
+}
+
+.attachment-preview{
+  margin-top:8px;
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.26);
+  background:rgba(0,0,0,0.2);
+}
+
+.attachment-preview img{
+  display:block;
+  width:min(360px, 100%);
+  max-height:280px;
+  object-fit:cover;
+}
+
+.attachment-caption{
+  font-size:12px;
+  opacity:0.95;
+  margin-top:6px;
+}
+
 /* ===== CODE ===== */
 .inline-code{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -1525,7 +1550,7 @@ function createBotActions(){
 }
 
 function addMsg(text,role,options={}){
-  const {animate=true}=options;
+  const {animate=true, attachment=null}=options;
   const w=document.createElement("div");
   w.className="msg "+(role==="user"?"user":"");
   if(!animate) w.classList.add("no-anim");
@@ -1543,8 +1568,36 @@ function addMsg(text,role,options={}){
       w.__rawText=text;
     }
   }else{
-    b.innerText=text;
-    lastUserPrompt=text;
+    const userText=(text || "").trim();
+    const hasText=Boolean(userText);
+    const hasAttachment=Boolean(attachment);
+    if(hasText){
+      const textEl=document.createElement("div");
+      textEl.className="user-text";
+      textEl.innerText=userText;
+      b.appendChild(textEl);
+    }
+    if(hasAttachment){
+      const isImage=(attachment.type || "").startsWith("image/");
+      if(isImage){
+        const previewWrap=document.createElement("div");
+        previewWrap.className="attachment-preview";
+        const img=document.createElement("img");
+        const objectUrl=URL.createObjectURL(attachment);
+        img.src=objectUrl;
+        img.alt=attachment.name || "Attached image";
+        img.onload=()=>URL.revokeObjectURL(objectUrl);
+        img.onerror=()=>URL.revokeObjectURL(objectUrl);
+        previewWrap.appendChild(img);
+        b.appendChild(previewWrap);
+      }else{
+        const caption=document.createElement("div");
+        caption.className="attachment-caption";
+        caption.innerText=`Attached: ${attachment.name}`;
+        b.appendChild(caption);
+      }
+    }
+    lastUserPrompt=userText;
   }
   w.appendChild(b);
   if(footer) w.appendChild(footer);
@@ -1662,11 +1715,8 @@ async function sendMessage(forcedText="",options={}){
     setActiveSession(createSessionId());
   }
   if(!asRegenerate){
-    let userLabel=text || "Please analyze this attachment.";
-    if(hasAttachment){
-      userLabel=`${userLabel}\n[Attached: ${attachedFile.name}]`;
-    }
-    addMsg(userLabel,"user");
+    const userLabel=text || "Please analyze this attachment.";
+    addMsg(userLabel,"user",{attachment:attachedFile});
     input.value="";
     clearPendingFile();
     autoResizeInput();
@@ -1695,7 +1745,8 @@ async function sendMessage(forcedText="",options={}){
     const d=await r.json();
     typingMsg.remove();
     if(!d.success){
-      addMsg(d.error || "Error","bot");
+      const errText=d.detail ? `${d.error || "Error"}\n\nDetails: ${d.detail}` : (d.error || "Error");
+      addMsg(errText,"bot");
       return;
     }
     addMsg(d.response||"Error","bot");
