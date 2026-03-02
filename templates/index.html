@@ -603,6 +603,7 @@ textarea{
 
 .attachment-preview{
   margin-top:8px;
+  width:min(360px, 100%);
   border-radius:12px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,0.26);
@@ -611,9 +612,10 @@ textarea{
 
 .attachment-preview img{
   display:block;
-  width:min(360px, 100%);
+  width:100%;
+  height:auto;
   max-height:280px;
-  object-fit:cover;
+  object-fit:contain;
 }
 
 .attachment-caption{
