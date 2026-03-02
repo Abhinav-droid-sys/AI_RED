@@ -303,6 +303,13 @@ body{
   border:1px solid rgba(255,255,255,0.22);
   box-shadow:0 10px 24px rgba(255,59,48,0.22), inset 0 1px 0 rgba(255,255,255,0.24);
 }
+
+.bubble.user.attachment-only{
+  padding:0;
+  background:transparent;
+  border:none;
+  box-shadow:none;
+}
 .bubble.bot{
   color:#f2f2f8;
   background:linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.07));
@@ -608,6 +615,10 @@ textarea{
   overflow:hidden;
   border:1px solid rgba(255,255,255,0.26);
   background:rgba(0,0,0,0.2);
+}
+
+.bubble.user.attachment-only .attachment-preview{
+  margin-top:0;
 }
 
 .attachment-preview img{
@@ -1180,6 +1191,32 @@ function setPendingFile(file){
   attachBtn.classList.add("has-file");
 }
 
+function getClipboardImageFile(clipboardData){
+  const items=Array.from(clipboardData?.items || []);
+  for(const item of items){
+    if(item.kind!=="file" || !(item.type || "").startsWith("image/")) continue;
+    const rawFile=item.getAsFile();
+    if(!rawFile) continue;
+    if(rawFile.name) return rawFile;
+    const ext=((rawFile.type || "image/png").split("/")[1] || "png").replace(/[^a-z0-9]/gi,"").toLowerCase() || "png";
+    return new File([rawFile],`pasted-image-${Date.now()}.${ext}`,{type:rawFile.type || "image/png"});
+  }
+  return null;
+}
+
+function handleInputPaste(event){
+  const clipboard=event.clipboardData;
+  if(!clipboard) return;
+  const imageFile=getClipboardImageFile(clipboard);
+  if(!imageFile) return;
+  const hasPlainText=Array.from(clipboard.items || []).some(item=>item.kind==="string" && item.type==="text/plain");
+  if(!hasPlainText){
+    event.preventDefault();
+  }
+  setPendingFile(imageFile);
+  showToast("Image pasted from clipboard.");
+}
+
 function setActiveSession(sessionId){
   const isChanged=activeSessionId!==sessionId;
   activeSessionId=sessionId;
@@ -1573,6 +1610,9 @@ function addMsg(text,role,options={}){
     const userText=(text || "").trim();
     const hasText=Boolean(userText);
     const hasAttachment=Boolean(attachment);
+    if(hasAttachment && !hasText){
+      b.classList.add("attachment-only");
+    }
     if(hasText){
       const textEl=document.createElement("div");
       textEl.className="user-text";
@@ -1717,7 +1757,7 @@ async function sendMessage(forcedText="",options={}){
     setActiveSession(createSessionId());
   }
   if(!asRegenerate){
-    const userLabel=text || "Please analyze this attachment.";
+    const userLabel=text;
     addMsg(userLabel,"user",{attachment:attachedFile});
     input.value="";
     clearPendingFile();
@@ -1765,6 +1805,7 @@ fileInput.addEventListener("change",()=>setPendingFile(fileInput.files?.[0] || n
 clearFileBtn.onclick=()=>clearPendingFile();
 micBtn.onclick=toggleVoiceInput;
 input.addEventListener("input",autoResizeInput);
+input.addEventListener("paste",handleInputPaste);
 input.addEventListener("keydown",e=>{
   if(e.key==="Enter" && !e.shiftKey){
     e.preventDefault();
