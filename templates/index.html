@@ -1188,37 +1188,40 @@ textarea{
 }
 
 body[data-theme="skeuo"]{
-  --red:#1f64ff;
-  --red2:#4ea0ff;
-  --bg:#dfeeff;
-  --glass:linear-gradient(180deg,#f9fcff,#d9eaff);
-  --glass-border:#8ab4ff;
-  --muted:#44618f;
-  --text-main:#0f2f6a;
-  --panel-shadow:0 22px 46px rgba(12,53,128,0.22);
-  --chat-input-bg:linear-gradient(180deg,#fdfefe,#d9e9ff);
-  --action-border:#8eb6ff;
-  --app-font:Manrope,Inter,system-ui,sans-serif;
+  --red:#5a8dee;
+  --red2:#2f5fd0;
+  --bg:#d6dbe3;
+  --glass:linear-gradient(180deg,#f0f2f5,#ccd1d8);
+  --glass-border:#a1a9b6;
+  --muted:#4c5667;
+  --text-main:#202632;
+  --panel-shadow:0 12px 30px rgba(74,82,96,0.28);
+  --chat-input-bg:linear-gradient(180deg,#e3e6eb,#c7ccd4);
+  --action-border:#9ca4b1;
+  --app-font:Inter,system-ui,sans-serif;
 }
 
 body[data-theme="skeuo"] .bg-layer{
-  filter:blur(26px) brightness(0.74) saturate(1.18);
+  filter:blur(24px) brightness(0.78) saturate(0.92);
 }
 
 body[data-theme="skeuo"] .bg-hue{
   background:
-    radial-gradient(circle at 18% 22%, rgba(255,232,130,0.28), transparent 36%),
-    linear-gradient(180deg, rgba(220,236,255,0.32), rgba(177,208,255,0.7));
+    radial-gradient(circle at 16% 18%, rgba(255,255,255,0.28), transparent 38%),
+    linear-gradient(180deg, rgba(207,213,222,0.5), rgba(159,167,178,0.82));
 }
 
 body[data-theme="skeuo"] .header,
 body[data-theme="skeuo"] .chat-box,
 body[data-theme="skeuo"] .history-panel,
 body[data-theme="skeuo"] .settings-panel{
-  background:linear-gradient(180deg,#fafdff,#d7e8ff);
-  border-color:#8ab4ff;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.96), inset 0 -10px 18px rgba(125,171,255,0.24), var(--panel-shadow);
-  backdrop-filter:blur(6px) saturate(1.1);
+  background:linear-gradient(180deg,#f3f5f8,#cdd2d9);
+  border:1px solid #a1a9b6;
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.84),
+    inset 0 -2px 6px rgba(93,99,110,0.2),
+    0 14px 28px rgba(80,88,101,0.24);
+  backdrop-filter:blur(2px) saturate(1);
 }
 
 body[data-theme="skeuo"] .history-item,
@@ -1234,10 +1237,75 @@ body[data-theme="skeuo"] .copy-btn,
 body[data-theme="skeuo"] .expand-btn,
 body[data-theme="skeuo"] .attach-btn,
 body[data-theme="skeuo"] .mic-btn{
-  background:linear-gradient(180deg,#ffffff,#d8e9ff);
-  border-color:#8ab4ff;
-  color:#123b79;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -8px 14px rgba(125,171,255,0.22), 0 8px 18px rgba(33,82,165,0.14);
+  border:1px solid #9da6b4;
+  color:#222a37;
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.82),
+    inset 0 -2px 5px rgba(95,101,112,0.18),
+    0 8px 16px rgba(74,81,93,0.2);
+}
+
+body[data-theme="skeuo"] .history-item,
+body[data-theme="skeuo"] .settings-section,
+body[data-theme="skeuo"] .theme-option,
+body[data-theme="skeuo"] .input-row,
+body[data-theme="skeuo"] .file-pill,
+body[data-theme="skeuo"] .code-modal-card,
+body[data-theme="skeuo"] .code-block,
+body[data-theme="skeuo"] .bubble.bot{
+  background:linear-gradient(180deg,#ffffff,#eceff4);
+}
+
+body[data-theme="skeuo"] .history-btn,
+body[data-theme="skeuo"] .settings-btn,
+body[data-theme="skeuo"] .copy-btn,
+body[data-theme="skeuo"] .expand-btn,
+body[data-theme="skeuo"] .code-modal-btn,
+body[data-theme="skeuo"] .msg-footer .action-btn,
+body[data-theme="skeuo"] .theme-toggle,
+body[data-theme="skeuo"] .theme-option,
+body[data-theme="skeuo"] .attach-btn,
+body[data-theme="skeuo"] .mic-btn,
+body[data-theme="skeuo"] .send,
+body[data-theme="skeuo"] .icon-btn{
+  transition:transform 120ms ease-out, box-shadow 200ms ease-out, background 200ms ease-out;
+}
+
+body[data-theme="skeuo"] .history-btn:hover,
+body[data-theme="skeuo"] .settings-btn:hover,
+body[data-theme="skeuo"] .copy-btn:hover,
+body[data-theme="skeuo"] .expand-btn:hover,
+body[data-theme="skeuo"] .code-modal-btn:hover,
+body[data-theme="skeuo"] .msg-footer .action-btn:hover,
+body[data-theme="skeuo"] .theme-toggle:hover,
+body[data-theme="skeuo"] .theme-option:hover,
+body[data-theme="skeuo"] .attach-btn:hover,
+body[data-theme="skeuo"] .mic-btn:hover,
+body[data-theme="skeuo"] .send:hover,
+body[data-theme="skeuo"] .icon-btn:hover,
+body[data-theme="skeuo"] .history-item:hover{
+  transform:translateY(-2px);
+  box-shadow:
+    0 12px 24px rgba(72,79,92,0.24),
+    inset 0 1px 1px rgba(255,255,255,0.9);
+}
+
+body[data-theme="skeuo"] .history-btn:active,
+body[data-theme="skeuo"] .settings-btn:active,
+body[data-theme="skeuo"] .copy-btn:active,
+body[data-theme="skeuo"] .expand-btn:active,
+body[data-theme="skeuo"] .code-modal-btn:active,
+body[data-theme="skeuo"] .msg-footer .action-btn:active,
+body[data-theme="skeuo"] .theme-toggle:active,
+body[data-theme="skeuo"] .theme-option:active,
+body[data-theme="skeuo"] .attach-btn:active,
+body[data-theme="skeuo"] .mic-btn:active,
+body[data-theme="skeuo"] .send:active,
+body[data-theme="skeuo"] .icon-btn:active{
+  transform:translateY(2px);
+  box-shadow:
+    inset 0 4px 8px rgba(72,78,89,0.32),
+    inset 0 1px 1px rgba(255,255,255,0.6);
 }
 
 body[data-theme="skeuo"] .theme-desc,
@@ -1257,31 +1325,106 @@ body[data-theme="skeuo"] .history-title,
 body[data-theme="skeuo"] .settings-title,
 body[data-theme="skeuo"] .history-item-title,
 body[data-theme="skeuo"] .theme-name{
-  color:#113976;
+  color:#1f2633;
+  text-shadow:0 1px 1px rgba(255,255,255,0.58);
 }
 
 body[data-theme="skeuo"] .bubble.bot{
-  background:linear-gradient(180deg,#ffffff,#e4efff);
-  border-color:#94b8ff;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -10px 16px rgba(139,178,255,0.2), 0 10px 22px rgba(19,64,138,0.16);
+  background:linear-gradient(180deg,#faf7ef,#e5dece);
+  border:1px solid #b6ab94;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.86),
+    inset 0 -8px 12px rgba(120,105,81,0.2),
+    0 10px 22px rgba(83,67,49,0.22);
   border-bottom-left-radius:12px;
 }
 
 body[data-theme="skeuo"] .bubble.user{
-  background:linear-gradient(180deg,#2f7bff,#1d5de8);
-  border-color:#9cc0ff;
+  background:linear-gradient(180deg,#5a8dee,#2f5fd0);
+  border:1px solid #5575bb;
   color:#ffffff;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.34), inset 0 -11px 16px rgba(8,39,118,0.3), 0 10px 24px rgba(15,61,151,0.36);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.38),
+    inset 0 -10px 14px rgba(23,52,120,0.34),
+    0 12px 25px rgba(30,70,150,0.35);
 }
 
 body[data-theme="skeuo"] .send{
-  background:linear-gradient(180deg,#ffe15e,#ffd017);
-  color:#1f3f86;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -12px 14px rgba(243,184,20,0.35), 0 10px 20px rgba(198,156,2,0.32);
+  background:linear-gradient(180deg,#5a8dee,#2f5fd0);
+  border:1px solid #4f70b5;
+  color:#f3f8ff;
+  box-shadow:
+    0 12px 25px rgba(30,70,150,0.35),
+    inset 0 1px 1px rgba(255,255,255,0.68),
+    inset 0 -8px 12px rgba(29,60,131,0.32);
+}
+
+body[data-theme="skeuo"] .attach-btn,
+body[data-theme="skeuo"] .mic-btn,
+body[data-theme="skeuo"] .history-btn,
+body[data-theme="skeuo"] .settings-btn,
+body[data-theme="skeuo"] .icon-btn,
+body[data-theme="skeuo"] .theme-toggle,
+body[data-theme="skeuo"] .theme-option,
+body[data-theme="skeuo"] .copy-btn,
+body[data-theme="skeuo"] .expand-btn,
+body[data-theme="skeuo"] .code-modal-btn,
+body[data-theme="skeuo"] .msg-footer .action-btn{
+  background:linear-gradient(180deg,#f7f8fb,#d6dbe3);
+}
+
+body[data-theme="skeuo"] .mic-btn.listening{
+  background:linear-gradient(180deg,#b87d58,#86532f);
+  border-color:#754327;
+  color:#fff5ea;
+  box-shadow:
+    0 10px 22px rgba(90,50,24,0.32),
+    inset 0 1px 1px rgba(255,231,206,0.56),
+    inset 0 -8px 12px rgba(86,44,20,0.32);
+}
+
+body[data-theme="skeuo"] .history-del{
+  color:#7a4652;
+}
+
+body[data-theme="skeuo"] .input-wrap{
+  background:linear-gradient(180deg,#d7dbe1,#bcc3cd);
+  border-top:1px solid #97a0ad;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,0.7);
+  backdrop-filter:none;
+}
+
+body[data-theme="skeuo"] .input-row{
+  background:linear-gradient(180deg,#e4e7ec,#c8cdd5);
+  border-color:#9ea6b2;
+}
+
+body[data-theme="skeuo"] textarea{
+  background:linear-gradient(180deg,#f8f2e4,#e9e0cf);
+  border:1px solid #c4b79d;
+  color:#252c37;
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,0.18),
+    inset 0 1px 1px rgba(255,255,255,0.74);
+  text-shadow:none;
+}
+
+body[data-theme="skeuo"] textarea::placeholder{
+  color:#66604f;
+}
+
+body[data-theme="skeuo"] .history-item.active,
+body[data-theme="skeuo"] .theme-option.active{
+  border-color:#8f99a9;
+  background:linear-gradient(180deg,#f7f9fb,#d8dde4);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.9),
+    inset 0 -3px 8px rgba(84,92,104,0.22),
+    0 8px 18px rgba(75,82,93,0.2);
 }
 
 body[data-theme="skeuo"] .msg{
-  animation:msgSkeuoInLeft 320ms cubic-bezier(.19,.89,.25,1);
+  animation:msgSkeuoInLeft 220ms ease-out;
 }
 
 body[data-theme="skeuo"] .msg.user{
@@ -1289,8 +1432,17 @@ body[data-theme="skeuo"] .msg.user{
 }
 
 body[data-theme="skeuo"] .typing span{
-  background:#2b6fff;
-  animation:typingPulseSkeuo 1s infinite ease-in-out;
+  background:#4f77c5;
+  animation:typingPulseSkeuo 900ms infinite ease-out;
+}
+
+body[data-theme="skeuo"] button:focus-visible,
+body[data-theme="skeuo"] textarea:focus-visible,
+body[data-theme="skeuo"] .history-item:focus-visible,
+body[data-theme="skeuo"] .theme-option:focus-visible,
+body[data-theme="skeuo"] .theme-toggle:focus-visible{
+  outline:2px solid #476eb8;
+  outline-offset:2px;
 }
 
 @keyframes msgNeoInLeft{
