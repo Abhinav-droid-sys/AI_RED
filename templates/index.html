@@ -7,7 +7,7 @@
 
 <meta name="theme-color" content="#0A0A0B" />
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <!-- ===== PRISM ===== -->
@@ -24,6 +24,11 @@
   --glass:rgba(255,255,255,0.06);
   --glass-border:rgba(255,255,255,0.12);
   --muted:#9B9BA6;
+  --text-main:#ffffff;
+  --panel-shadow:0 24px 52px rgba(0,0,0,0.42);
+  --chat-input-bg:rgba(255,255,255,0.08);
+  --action-border:rgba(255,255,255,0.2);
+  --app-font:Inter,system-ui,sans-serif;
 }
 
 *{ box-sizing:border-box; }
@@ -31,10 +36,11 @@ html,body{ height:100%; }
 
 body{
   margin:0;
-  font-family:Inter,system-ui,sans-serif;
-  background:#000;
-  color:white;
+  font-family:var(--app-font);
+  background:var(--bg);
+  color:var(--text-main);
   overflow:auto;
+  transition:background 320ms ease, color 320ms ease;
 }
 
 /* ===== BACKGROUND ===== */
@@ -62,6 +68,7 @@ body{
   position:absolute;
   inset:0;
   background:linear-gradient(180deg, rgba(6,6,7,0.18), rgba(6,6,7,0.66));
+  transition:background 350ms ease;
 }
 
 /* ===== APP ===== */
@@ -87,6 +94,7 @@ body{
   background:var(--glass);
   backdrop-filter:blur(18px) saturate(1.2);
   border:1px solid var(--glass-border);
+  transition:background 280ms ease, border-color 280ms ease, box-shadow 280ms ease;
 }
 
 .brand{
@@ -100,10 +108,15 @@ body{
 .icon-btn{
   background:none;
   border:none;
-  color:white;
+  color:var(--text-main);
   font-size:20px;
   cursor:pointer;
   margin-left:14px;
+  transition:color 220ms ease, transform 140ms ease;
+}
+
+.icon-btn:hover{
+  transform:translateY(-1px);
 }
 
 .history-overlay{
@@ -133,7 +146,7 @@ body{
   background:rgba(255,255,255,0.08);
   border:1px solid rgba(255,255,255,0.16);
   border-radius:20px;
-  box-shadow:0 24px 52px rgba(0,0,0,0.42);
+  box-shadow:var(--panel-shadow);
   backdrop-filter:blur(24px) saturate(1.2);
   padding:16px 14px 14px;
   display:flex;
@@ -144,6 +157,153 @@ body{
   transform:translateX(108%) scale(0.985);
   pointer-events:none;
   transition:transform 240ms ease, opacity 220ms ease, visibility 220ms ease;
+}
+
+.settings-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(6,6,8,0.38);
+  backdrop-filter:blur(4px);
+  z-index:60;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity 220ms ease, visibility 220ms ease;
+}
+
+.settings-overlay.open{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
+
+.settings-panel{
+  position:fixed;
+  top:12px;
+  right:12px;
+  width:min(360px,92vw);
+  height:calc(100dvh - 24px);
+  z-index:70;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.16);
+  border-radius:20px;
+  box-shadow:var(--panel-shadow);
+  backdrop-filter:blur(24px) saturate(1.2);
+  padding:16px 14px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  opacity:0;
+  visibility:hidden;
+  transform:translateX(108%) scale(0.985);
+  pointer-events:none;
+  transition:transform 240ms ease, opacity 220ms ease, visibility 220ms ease;
+}
+
+.settings-panel.open{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(0) scale(1);
+  pointer-events:auto;
+}
+
+.settings-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.settings-title{
+  font-size:16px;
+  font-weight:700;
+}
+
+.settings-section{
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.06);
+  border-radius:14px;
+  padding:12px;
+}
+
+.settings-label{
+  font-size:12px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:#b9bcc7;
+  margin-bottom:10px;
+}
+
+.theme-options{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.theme-option{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.07);
+  border-radius:12px;
+  padding:10px;
+  transition:border-color 200ms ease, background 200ms ease, transform 120ms ease;
+}
+
+.theme-option:hover{
+  border-color:rgba(255,255,255,0.24);
+  background:rgba(255,255,255,0.11);
+  transform:translateY(-1px);
+}
+
+.theme-option input{
+  margin-top:2px;
+}
+
+.theme-name{
+  font-size:14px;
+  font-weight:700;
+}
+
+.theme-desc{
+  font-size:12px;
+  color:#ced0da;
+  margin-top:2px;
+}
+
+.settings-footer{
+  margin-top:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.settings-btn{
+  border:1px solid rgba(255,255,255,0.18);
+  background:rgba(255,255,255,0.08);
+  color:var(--text-main);
+  border-radius:12px;
+  padding:11px 12px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background 180ms ease, border-color 180ms ease, transform 120ms ease;
+}
+
+.settings-btn:hover{
+  background:rgba(255,255,255,0.13);
+  border-color:rgba(255,255,255,0.26);
+}
+
+.settings-btn:active{
+  transform:translateY(1px);
+}
+
+.settings-btn.logout{
+  background:linear-gradient(135deg, rgba(255,59,48,0.28), rgba(255,107,107,0.18));
+  border-color:rgba(255,145,145,0.4);
+  color:#ffd9d6;
 }
 .history-panel.open{
   opacity:1;
@@ -270,6 +430,7 @@ body{
   backdrop-filter:blur(20px) saturate(1.15);
   border:1px solid var(--glass-border);
   overflow:hidden;
+  transition:background 280ms ease, border-color 280ms ease, box-shadow 280ms ease;
 }
 
 .messages{
@@ -296,6 +457,7 @@ body{
   line-height:1.55;
   font-size:15px;
   box-shadow:0 8px 20px rgba(0,0,0,0.2);
+  transition:background 260ms ease, border-color 260ms ease, box-shadow 260ms ease, color 260ms ease;
 }
 .bubble.user{
   background:linear-gradient(135deg,var(--red),var(--red2));
@@ -483,6 +645,7 @@ body{
   background:rgba(6,6,7,0.45);
   backdrop-filter:blur(18px);
   border-top:1px solid rgba(255,255,255,0.08);
+  transition:background 260ms ease, border-color 260ms ease;
 }
 
 .input-row{
@@ -490,9 +653,10 @@ body{
   gap:12px;
   padding:12px;
   border-radius:14px;
-  background:rgba(255,255,255,0.08);
+  background:var(--chat-input-bg);
   border:1px solid var(--glass-border);
   align-items:center;
+  transition:background 260ms ease, border-color 260ms ease, box-shadow 260ms ease;
 }
 
 textarea{
@@ -501,7 +665,7 @@ textarea{
   background:none;
   border:none;
   outline:none;
-  color:white;
+  color:var(--text-main);
   font-size:15px;
   max-height:140px;
 }
@@ -515,12 +679,17 @@ textarea{
   color:white;
   font-size:18px;
   cursor:pointer;
+  transition:transform 120ms ease, box-shadow 220ms ease;
+}
+
+.send:hover{
+  box-shadow:0 10px 24px rgba(255,59,48,0.25);
 }
 
 .mic-btn{
   min-width:88px;
   height:48px;
-  border:1px solid rgba(255,255,255,0.2);
+  border:1px solid var(--action-border);
   border-radius:12px;
   background:rgba(255,255,255,0.08);
   color:#f0f0f6;
@@ -552,7 +721,7 @@ textarea{
 .attach-btn{
   width:48px;
   height:48px;
-  border:1px solid rgba(255,255,255,0.2);
+  border:1px solid var(--action-border);
   border-radius:12px;
   background:rgba(255,255,255,0.08);
   color:#f0f0f6;
@@ -949,6 +1118,127 @@ textarea{
   0%,80%,100%{ transform:translateY(0); opacity:0.35; }
   40%{ transform:translateY(-3px); opacity:1; }
 }
+
+@keyframes msgSkeuoInLeft{
+  from{ opacity:0; transform:translateX(-16px) rotateX(8deg) scale(0.98); }
+  to{ opacity:1; transform:translateX(0) rotateX(0) scale(1); }
+}
+
+@keyframes msgSkeuoInRight{
+  from{ opacity:0; transform:translateX(16px) rotateX(8deg) scale(0.98); }
+  to{ opacity:1; transform:translateX(0) rotateX(0) scale(1); }
+}
+
+@keyframes typingPulseSkeuo{
+  0%,100%{ transform:translateY(0) scale(0.92); opacity:0.45; }
+  50%{ transform:translateY(-4px) scale(1); opacity:1; }
+}
+
+body[data-theme="skeuo"]{
+  --red:#1f64ff;
+  --red2:#4ea0ff;
+  --bg:#dfeeff;
+  --glass:linear-gradient(180deg,#f9fcff,#d9eaff);
+  --glass-border:#8ab4ff;
+  --muted:#44618f;
+  --text-main:#0f2f6a;
+  --panel-shadow:0 22px 46px rgba(12,53,128,0.22);
+  --chat-input-bg:linear-gradient(180deg,#fdfefe,#d9e9ff);
+  --action-border:#8eb6ff;
+  --app-font:Manrope,Inter,system-ui,sans-serif;
+}
+
+body[data-theme="skeuo"] .bg-layer{
+  filter:blur(26px) brightness(0.74) saturate(1.18);
+}
+
+body[data-theme="skeuo"] .bg-hue{
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,232,130,0.28), transparent 36%),
+    linear-gradient(180deg, rgba(220,236,255,0.32), rgba(177,208,255,0.7));
+}
+
+body[data-theme="skeuo"] .header,
+body[data-theme="skeuo"] .chat-box,
+body[data-theme="skeuo"] .history-panel,
+body[data-theme="skeuo"] .settings-panel{
+  background:linear-gradient(180deg,#fafdff,#d7e8ff);
+  border-color:#8ab4ff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.96), inset 0 -10px 18px rgba(125,171,255,0.24), var(--panel-shadow);
+  backdrop-filter:blur(6px) saturate(1.1);
+}
+
+body[data-theme="skeuo"] .history-item,
+body[data-theme="skeuo"] .settings-section,
+body[data-theme="skeuo"] .theme-option,
+body[data-theme="skeuo"] .input-row,
+body[data-theme="skeuo"] .file-pill,
+body[data-theme="skeuo"] .history-btn,
+body[data-theme="skeuo"] .settings-btn,
+body[data-theme="skeuo"] .msg-footer .action-btn,
+body[data-theme="skeuo"] .code-modal-btn,
+body[data-theme="skeuo"] .copy-btn,
+body[data-theme="skeuo"] .expand-btn,
+body[data-theme="skeuo"] .attach-btn,
+body[data-theme="skeuo"] .mic-btn{
+  background:linear-gradient(180deg,#ffffff,#d8e9ff);
+  border-color:#8ab4ff;
+  color:#123b79;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -8px 14px rgba(125,171,255,0.22), 0 8px 18px rgba(33,82,165,0.14);
+}
+
+body[data-theme="skeuo"] .theme-desc,
+body[data-theme="skeuo"] .history-preview,
+body[data-theme="skeuo"] .history-time,
+body[data-theme="skeuo"] .settings-label,
+body[data-theme="skeuo"] .brand,
+body[data-theme="skeuo"] .bubble.bot p,
+body[data-theme="skeuo"] .bubble.bot,
+body[data-theme="skeuo"] .line-code,
+body[data-theme="skeuo"] .code-header,
+body[data-theme="skeuo"] .code-modal-head,
+body[data-theme="skeuo"] .inline-code,
+body[data-theme="skeuo"] textarea,
+body[data-theme="skeuo"] .icon-btn,
+body[data-theme="skeuo"] .history-title,
+body[data-theme="skeuo"] .settings-title,
+body[data-theme="skeuo"] .history-item-title,
+body[data-theme="skeuo"] .theme-name{
+  color:#113976;
+}
+
+body[data-theme="skeuo"] .bubble.bot{
+  background:linear-gradient(180deg,#ffffff,#e4efff);
+  border-color:#94b8ff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -10px 16px rgba(139,178,255,0.2), 0 10px 22px rgba(19,64,138,0.16);
+  border-bottom-left-radius:12px;
+}
+
+body[data-theme="skeuo"] .bubble.user{
+  background:linear-gradient(180deg,#2f7bff,#1d5de8);
+  border-color:#9cc0ff;
+  color:#ffffff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.34), inset 0 -11px 16px rgba(8,39,118,0.3), 0 10px 24px rgba(15,61,151,0.36);
+}
+
+body[data-theme="skeuo"] .send{
+  background:linear-gradient(180deg,#ffe15e,#ffd017);
+  color:#1f3f86;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -12px 14px rgba(243,184,20,0.35), 0 10px 20px rgba(198,156,2,0.32);
+}
+
+body[data-theme="skeuo"] .msg{
+  animation:msgSkeuoInLeft 320ms cubic-bezier(.19,.89,.25,1);
+}
+
+body[data-theme="skeuo"] .msg.user{
+  animation-name:msgSkeuoInRight;
+}
+
+body[data-theme="skeuo"] .typing span{
+  background:#2b6fff;
+  animation:typingPulseSkeuo 1s infinite ease-in-out;
+}
 </style>
 </head>
 
@@ -967,7 +1257,7 @@ textarea{
   <div class="brand">RED</div>
   <div>
     <button class="icon-btn" id="historyBtn"><i class="fas fa-layer-group"></i></button>
-    <button class="icon-btn" id="logoutBtn"><i class="fas fa-right-from-bracket"></i></button>
+    <button class="icon-btn" id="settingsBtn" title="Settings"><i class="fas fa-sliders"></i></button>
   </div>
 </div>
 
@@ -1010,6 +1300,38 @@ textarea{
     </div>
   </div>
   <ul class="history-list" id="historyList"></ul>
+</aside>
+
+<div class="settings-overlay" id="settingsOverlay"></div>
+<aside class="settings-panel" id="settingsPanel">
+  <div class="settings-head">
+    <div class="settings-title">Settings</div>
+    <button class="history-btn" id="closeSettingsBtn">Close</button>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">Theme</div>
+    <div class="theme-options">
+      <label class="theme-option" for="themeGlass">
+        <input type="radio" name="theme" id="themeGlass" value="glass" checked>
+        <div>
+          <div class="theme-name">Glass Morph</div>
+          <div class="theme-desc">Soft blur, translucent cards, and fluid ambient motion.</div>
+        </div>
+      </label>
+      <label class="theme-option" for="themeSkeuo">
+        <input type="radio" name="theme" id="themeSkeuo" value="skeuo">
+        <div>
+          <div class="theme-name">Skeuomorphism</div>
+          <div class="theme-desc">Royal blue light palette with bright yellow accents and tactile depth.</div>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <div class="settings-footer">
+    <button class="settings-btn logout" id="settingsLogoutBtn"><i class="fas fa-right-from-bracket"></i> Logout</button>
+  </div>
 </aside>
 
 <div class="code-modal" id="codeModal">
@@ -1056,7 +1378,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* 🚪 LOGOUT */
-document.getElementById("logoutBtn").onclick = async () => {
+document.getElementById("settingsLogoutBtn").onclick = async () => {
   await signOut(auth);
   localStorage.clear();
   window.location.replace("/login");
@@ -1077,12 +1399,18 @@ const clearFileBtn=document.getElementById("clearFileBtn");
 const micBtn=document.getElementById("micBtn");
 const sendBtn=document.getElementById("sendBtn");
 const historyBtn=document.getElementById("historyBtn");
+const settingsBtn=document.getElementById("settingsBtn");
 const historyOverlay=document.getElementById("historyOverlay");
 const historyPanel=document.getElementById("historyPanel");
 const historyList=document.getElementById("historyList");
 const closeHistoryBtn=document.getElementById("closeHistoryBtn");
 const newChatBtn=document.getElementById("newChatBtn");
 const clearChatsBtn=document.getElementById("clearChatsBtn");
+const settingsOverlay=document.getElementById("settingsOverlay");
+const settingsPanel=document.getElementById("settingsPanel");
+const closeSettingsBtn=document.getElementById("closeSettingsBtn");
+const themeGlass=document.getElementById("themeGlass");
+const themeSkeuo=document.getElementById("themeSkeuo");
 const codeModal=document.getElementById("codeModal");
 const codeModalTitle=document.getElementById("codeModalTitle");
 const codeModalBody=document.getElementById("codeModalBody");
@@ -1103,6 +1431,7 @@ let isVoiceListening=false;
 let voiceShouldSubmit=false;
 let finalVoiceText="";
 let pendingFile=null;
+let activeTheme=(localStorage.getItem("redTheme") || "glass").toLowerCase();
 
 const STOCK_BACKGROUNDS=[
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80",
@@ -1661,6 +1990,7 @@ function formatTime(iso){
 }
 
 function openHistory(){
+  closeSettings();
   historyOverlay.classList.add("open");
   historyPanel.classList.add("open");
 }
@@ -1668,6 +1998,28 @@ function openHistory(){
 function closeHistory(){
   historyOverlay.classList.remove("open");
   historyPanel.classList.remove("open");
+}
+
+function openSettings(){
+  closeHistory();
+  settingsOverlay.classList.add("open");
+  settingsPanel.classList.add("open");
+}
+
+function closeSettings(){
+  settingsOverlay.classList.remove("open");
+  settingsPanel.classList.remove("open");
+}
+
+function applyTheme(theme){
+  const normalized=(theme || "glass").toLowerCase()==="skeuo" ? "skeuo" : "glass";
+  activeTheme=normalized;
+  document.body.dataset.theme=normalized;
+  localStorage.setItem("redTheme",normalized);
+  if(themeGlass && themeSkeuo){
+    themeGlass.checked=normalized==="glass";
+    themeSkeuo.checked=normalized==="skeuo";
+  }
 }
 
 async function loadHistoryList(){
@@ -1823,6 +2175,10 @@ codeModalCopyBtn.onclick=()=>{
   showToast("Code copied.");
 };
 document.addEventListener("keydown",(e)=>{
+  if(e.key==="Escape" && settingsPanel.classList.contains("open")){
+    closeSettings();
+    return;
+  }
   if(e.key==="Escape" && codeModal.classList.contains("open")){
     closeCodeModal();
   }
@@ -1832,8 +2188,17 @@ historyBtn.onclick=async ()=>{
   openHistory();
   await loadHistoryList();
 };
+settingsBtn.onclick=openSettings;
 closeHistoryBtn.onclick=closeHistory;
 historyOverlay.onclick=closeHistory;
+closeSettingsBtn.onclick=closeSettings;
+settingsOverlay.onclick=closeSettings;
+themeGlass.addEventListener("change",()=>{
+  if(themeGlass.checked) applyTheme("glass");
+});
+themeSkeuo.addEventListener("change",()=>{
+  if(themeSkeuo.checked) applyTheme("skeuo");
+});
 newChatBtn.onclick=()=>{
   startNewChat();
   closeHistory();
@@ -1862,6 +2227,7 @@ historyList.addEventListener("click",async (e)=>{
 });
 
 (async ()=>{
+  applyTheme(activeTheme);
   if(!activeSessionId){
     startNewChat();
   }else{
