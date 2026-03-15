@@ -7,7 +7,7 @@
 
 <meta name="theme-color" content="#0A0A0B" />
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <!-- ===== PRISM ===== -->
@@ -233,21 +233,61 @@ body{
   margin-bottom:10px;
 }
 
-.theme-options{
+.theme-dropdown{
+  position:relative;
+}
+
+.theme-toggle{
+  width:100%;
   display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:1px solid rgba(255,255,255,0.18);
+  background:rgba(255,255,255,0.08);
+  color:var(--text-main);
+  border-radius:12px;
+  padding:11px 12px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background 180ms ease, border-color 180ms ease, transform 120ms ease;
+}
+
+.theme-toggle:hover{
+  background:rgba(255,255,255,0.13);
+  border-color:rgba(255,255,255,0.26);
+}
+
+.theme-toggle:active{
+  transform:translateY(1px);
+}
+
+.theme-dropdown-menu{
+  margin-top:10px;
+  display:none;
   flex-direction:column;
   gap:10px;
 }
 
+.theme-dropdown.open .theme-dropdown-menu{
+  display:flex;
+}
+
 .theme-option{
   display:flex;
-  align-items:flex-start;
+  align-items:center;
+  justify-content:space-between;
   gap:10px;
   cursor:pointer;
+  text-align:left;
+  width:100%;
   border:1px solid rgba(255,255,255,0.15);
   background:rgba(255,255,255,0.07);
+  color:var(--text-main);
   border-radius:12px;
   padding:10px;
+  font-family:inherit;
   transition:border-color 200ms ease, background 200ms ease, transform 120ms ease;
 }
 
@@ -257,8 +297,9 @@ body{
   transform:translateY(-1px);
 }
 
-.theme-option input{
-  margin-top:2px;
+.theme-option.active{
+  border-color:rgba(255,107,107,0.74);
+  box-shadow:0 0 0 1px rgba(255,107,107,0.22) inset;
 }
 
 .theme-name{
@@ -270,6 +311,18 @@ body{
   font-size:12px;
   color:#ced0da;
   margin-top:2px;
+}
+
+.theme-check{
+  font-size:12px;
+  opacity:0;
+  transform:translateY(2px);
+  transition:opacity 140ms ease, transform 140ms ease;
+}
+
+.theme-option.active .theme-check{
+  opacity:1;
+  transform:translateY(0);
 }
 
 .settings-footer{
@@ -1239,6 +1292,355 @@ body[data-theme="skeuo"] .typing span{
   background:#2b6fff;
   animation:typingPulseSkeuo 1s infinite ease-in-out;
 }
+
+@keyframes msgNeoInLeft{
+  from{ opacity:0; transform:translateX(-14px) translateY(8px); }
+  to{ opacity:1; transform:translateX(0) translateY(0); }
+}
+
+@keyframes msgNeoInRight{
+  from{ opacity:0; transform:translateX(14px) translateY(8px); }
+  to{ opacity:1; transform:translateX(0) translateY(0); }
+}
+
+@keyframes neoTypingPulse{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-4px); }
+}
+
+body[data-theme="neo"]{
+  --red:#000000;
+  --red2:#000000;
+  --bg:#F8F8F8;
+  --glass:#F8F8F8;
+  --glass-border:#000000;
+  --muted:#2a2a2a;
+  --text-main:#000000;
+  --panel-shadow:6px 6px 0 #000;
+  --chat-input-bg:#00A6FF;
+  --action-border:#000000;
+  --app-font:Inter,system-ui,sans-serif;
+}
+
+body[data-theme="neo"] *{
+  border-radius:0 !important;
+}
+
+body[data-theme="neo"] .bg-layer{
+  opacity:0 !important;
+  filter:none;
+}
+
+body[data-theme="neo"] .bg-hue{
+  background:#F8F8F8;
+}
+
+body[data-theme="neo"] .app{
+  max-width:1080px;
+  gap:16px;
+  padding:16px;
+}
+
+body[data-theme="neo"] .header,
+body[data-theme="neo"] .chat-box,
+body[data-theme="neo"] .history-panel,
+body[data-theme="neo"] .settings-panel,
+body[data-theme="neo"] .code-modal-card{
+  background:#F8F8F8;
+  border:4px solid #000;
+  box-shadow:6px 6px 0 #000;
+  backdrop-filter:none;
+}
+
+body[data-theme="neo"] .header{
+  transform:translateX(5px);
+}
+
+body[data-theme="neo"] .brand{
+  color:#000;
+  font-family:"Archivo Black","Anton",Inter,sans-serif;
+  font-size:26px;
+  letter-spacing:0.03em;
+  background:none;
+  -webkit-text-fill-color:initial;
+}
+
+body[data-theme="neo"] .icon-btn,
+body[data-theme="neo"] .history-btn,
+body[data-theme="neo"] .settings-btn,
+body[data-theme="neo"] .theme-toggle,
+body[data-theme="neo"] .theme-option,
+body[data-theme="neo"] .send,
+body[data-theme="neo"] .attach-btn,
+body[data-theme="neo"] .mic-btn,
+body[data-theme="neo"] .copy-btn,
+body[data-theme="neo"] .expand-btn,
+body[data-theme="neo"] .code-modal-btn,
+body[data-theme="neo"] .msg-footer .action-btn{
+  border:3px solid #000;
+  box-shadow:4px 4px 0 #000;
+  transition:transform 120ms ease-out, box-shadow 120ms ease-out, background 120ms ease-out;
+}
+
+body[data-theme="neo"] .icon-btn{
+  width:40px;
+  height:40px;
+  padding:0;
+  margin-left:10px;
+  background:#FFD600;
+  color:#000;
+}
+
+body[data-theme="neo"] .icon-btn:hover,
+body[data-theme="neo"] .history-btn:hover,
+body[data-theme="neo"] .settings-btn:hover,
+body[data-theme="neo"] .theme-toggle:hover,
+body[data-theme="neo"] .theme-option:hover,
+body[data-theme="neo"] .send:hover,
+body[data-theme="neo"] .attach-btn:hover,
+body[data-theme="neo"] .mic-btn:hover,
+body[data-theme="neo"] .copy-btn:hover,
+body[data-theme="neo"] .expand-btn:hover,
+body[data-theme="neo"] .code-modal-btn:hover,
+body[data-theme="neo"] .msg-footer .action-btn:hover{
+  transform:translate(3px,3px);
+  box-shadow:1px 1px 0 #000;
+}
+
+body[data-theme="neo"] .icon-btn:active,
+body[data-theme="neo"] .history-btn:active,
+body[data-theme="neo"] .settings-btn:active,
+body[data-theme="neo"] .theme-toggle:active,
+body[data-theme="neo"] .theme-option:active,
+body[data-theme="neo"] .send:active,
+body[data-theme="neo"] .attach-btn:active,
+body[data-theme="neo"] .mic-btn:active,
+body[data-theme="neo"] .copy-btn:active,
+body[data-theme="neo"] .expand-btn:active,
+body[data-theme="neo"] .code-modal-btn:active,
+body[data-theme="neo"] .msg-footer .action-btn:active{
+  transform:translate(4px,4px);
+  box-shadow:0 0 0 #000;
+}
+
+body[data-theme="neo"] .history-overlay,
+body[data-theme="neo"] .settings-overlay,
+body[data-theme="neo"] .code-modal{
+  backdrop-filter:none;
+  background:rgba(0,0,0,0.28);
+}
+
+body[data-theme="neo"] .settings-section,
+body[data-theme="neo"] .theme-option,
+body[data-theme="neo"] .history-item,
+body[data-theme="neo"] .input-row,
+body[data-theme="neo"] .file-pill,
+body[data-theme="neo"] .code-header,
+body[data-theme="neo"] .code-modal-head,
+body[data-theme="neo"] .bubble.bot blockquote,
+body[data-theme="neo"] .bubble.bot .table-wrap,
+body[data-theme="neo"] .inline-code,
+body[data-theme="neo"] .toast{
+  border:3px solid #000;
+  box-shadow:4px 4px 0 #000;
+}
+
+body[data-theme="neo"] .settings-section{
+  background:#FF3EBF;
+}
+
+body[data-theme="neo"] .settings-label,
+body[data-theme="neo"] .settings-title,
+body[data-theme="neo"] .history-title,
+body[data-theme="neo"] .history-item-title,
+body[data-theme="neo"] .history-preview,
+body[data-theme="neo"] .history-time,
+body[data-theme="neo"] .theme-name,
+body[data-theme="neo"] .theme-desc,
+body[data-theme="neo"] .line-code,
+body[data-theme="neo"] .line-no,
+body[data-theme="neo"] .code-lang,
+body[data-theme="neo"] .code-file,
+body[data-theme="neo"] .code-header,
+body[data-theme="neo"] .code-modal-head,
+body[data-theme="neo"] textarea,
+body[data-theme="neo"] .bubble.bot,
+body[data-theme="neo"] .bubble.bot p,
+body[data-theme="neo"] .bubble.bot li,
+body[data-theme="neo"] .bubble.bot strong,
+body[data-theme="neo"] .inline-code{
+  color:#000;
+}
+
+body[data-theme="neo"] .theme-toggle,
+body[data-theme="neo"] .theme-option,
+body[data-theme="neo"] .history-btn,
+body[data-theme="neo"] .settings-btn,
+body[data-theme="neo"] .copy-btn,
+body[data-theme="neo"] .expand-btn,
+body[data-theme="neo"] .code-modal-btn,
+body[data-theme="neo"] .msg-footer .action-btn,
+body[data-theme="neo"] .history-item,
+body[data-theme="neo"] .file-pill{
+  background:#F8F8F8;
+}
+
+body[data-theme="neo"] .theme-option.active{
+  background:#00FF9C;
+  border-color:#000;
+  box-shadow:4px 4px 0 #000;
+}
+
+body[data-theme="neo"] .chat-box{
+  background:#FF3EBF;
+  transform:translateX(-5px);
+}
+
+body[data-theme="neo"] .messages{
+  padding:20px;
+  gap:16px;
+}
+
+body[data-theme="neo"] .msg{
+  animation:msgNeoInLeft 140ms ease-out;
+}
+
+body[data-theme="neo"] .msg.user{
+  animation-name:msgNeoInRight;
+}
+
+body[data-theme="neo"] .bubble{
+  border:3px solid #000;
+  box-shadow:4px 4px 0 #000;
+  font-size:15px;
+  line-height:1.45;
+}
+
+body[data-theme="neo"] .bubble.bot{
+  background:#F8F8F8;
+  border-bottom-left-radius:0;
+}
+
+body[data-theme="neo"] .bubble.user{
+  background:#00A6FF;
+  color:#000;
+  border-bottom-right-radius:0;
+}
+
+body[data-theme="neo"] .bubble.bot blockquote{
+  background:#FFD600;
+  border-left:6px solid #000;
+}
+
+body[data-theme="neo"] .bubble.bot .table-wrap,
+body[data-theme="neo"] .bubble.bot th,
+body[data-theme="neo"] .bubble.bot td{
+  background:#F8F8F8;
+  border-color:#000;
+}
+
+body[data-theme="neo"] .bubble.bot .msg-sep{
+  border-top:3px solid #000;
+}
+
+body[data-theme="neo"] .typing span{
+  background:#000;
+  border:2px solid #000;
+  border-radius:0;
+  opacity:1;
+  animation:neoTypingPulse 620ms infinite steps(2,end);
+}
+
+body[data-theme="neo"] .input-wrap{
+  background:#FFD600;
+  border-top:4px solid #000;
+  backdrop-filter:none;
+  transform:translateY(3px);
+}
+
+body[data-theme="neo"] .input-row{
+  background:#00A6FF;
+  border:3px solid #000;
+  box-shadow:4px 4px 0 #000;
+}
+
+body[data-theme="neo"] textarea{
+  background:#F8F8F8;
+  border:3px solid #000;
+  padding:9px 10px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:14px;
+}
+
+body[data-theme="neo"] textarea:focus{
+  background:#00FF9C;
+}
+
+body[data-theme="neo"] .send{
+  background:#FFD600;
+  color:#000;
+}
+
+body[data-theme="neo"] .attach-btn{
+  background:#FF7A00;
+  color:#000;
+}
+
+body[data-theme="neo"] .mic-btn{
+  background:#7B61FF;
+  color:#fff;
+}
+
+body[data-theme="neo"] .mic-btn.listening{
+  background:#FF3B30;
+  color:#fff;
+  border-color:#000;
+}
+
+body[data-theme="neo"] .attach-btn.has-file{
+  background:#00FF9C;
+  color:#000;
+  border-color:#000;
+}
+
+body[data-theme="neo"] .code-block,
+body[data-theme="neo"] .code-modal-card,
+body[data-theme="neo"] .code-modal-body,
+body[data-theme="neo"] .code-modal-body .line-grid{
+  background:#F8F8F8;
+  color:#000;
+  border-color:#000;
+}
+
+body[data-theme="neo"] .code-block{
+  border:3px solid #000;
+  box-shadow:4px 4px 0 #000;
+}
+
+body[data-theme="neo"] .code-modal-card{
+  border:4px solid #000;
+  box-shadow:6px 6px 0 #000;
+}
+
+body[data-theme="neo"] .toast{
+  background:#FF7A00;
+  color:#000;
+}
+
+body[data-theme="neo"] .history-item.active{
+  border-color:#000;
+  background:#00FF9C;
+  box-shadow:4px 4px 0 #000;
+}
+
+body[data-theme="neo"] button:focus-visible,
+body[data-theme="neo"] textarea:focus-visible,
+body[data-theme="neo"] .history-item:focus-visible,
+body[data-theme="neo"] .theme-option:focus-visible,
+body[data-theme="neo"] .theme-toggle:focus-visible{
+  outline:3px dashed #000;
+  outline-offset:3px;
+}
 </style>
 </head>
 
@@ -1311,21 +1713,34 @@ body[data-theme="skeuo"] .typing span{
 
   <div class="settings-section">
     <div class="settings-label">Theme</div>
-    <div class="theme-options">
-      <label class="theme-option" for="themeGlass">
-        <input type="radio" name="theme" id="themeGlass" value="glass" checked>
-        <div>
-          <div class="theme-name">Glass Morph</div>
-          <div class="theme-desc">Soft blur, translucent cards, and fluid ambient motion.</div>
-        </div>
-      </label>
-      <label class="theme-option" for="themeSkeuo">
-        <input type="radio" name="theme" id="themeSkeuo" value="skeuo">
-        <div>
-          <div class="theme-name">Skeuomorphism</div>
-          <div class="theme-desc">Royal blue light palette with bright yellow accents and tactile depth.</div>
-        </div>
-      </label>
+    <div class="theme-dropdown" id="themeDropdown">
+      <button class="theme-toggle" id="themeToggleBtn" type="button" aria-expanded="false" aria-controls="themeDropdownMenu">
+        <span id="themeCurrentLabel">Glass Morph</span>
+        <i class="fas fa-chevron-down"></i>
+      </button>
+      <div class="theme-dropdown-menu" id="themeDropdownMenu" role="menu">
+        <button class="theme-option" type="button" role="menuitemradio" data-theme-option="glass" aria-checked="true">
+          <span>
+            <span class="theme-name">Glass Morph</span>
+            <span class="theme-desc">Soft blur, translucent cards, and fluid ambient motion.</span>
+          </span>
+          <i class="theme-check fas fa-circle-check" aria-hidden="true"></i>
+        </button>
+        <button class="theme-option" type="button" role="menuitemradio" data-theme-option="skeuo" aria-checked="false">
+          <span>
+            <span class="theme-name">Skeuomorphism</span>
+            <span class="theme-desc">Royal blue light palette with bright yellow accents and tactile depth.</span>
+          </span>
+          <i class="theme-check fas fa-circle-check" aria-hidden="true"></i>
+        </button>
+        <button class="theme-option" type="button" role="menuitemradio" data-theme-option="neo" aria-checked="false">
+          <span>
+            <span class="theme-name">Neobrutalist</span>
+            <span class="theme-desc">Hard borders, bold flat accents, geometric panels, and mechanical motion.</span>
+          </span>
+          <i class="theme-check fas fa-circle-check" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1409,8 +1824,10 @@ const clearChatsBtn=document.getElementById("clearChatsBtn");
 const settingsOverlay=document.getElementById("settingsOverlay");
 const settingsPanel=document.getElementById("settingsPanel");
 const closeSettingsBtn=document.getElementById("closeSettingsBtn");
-const themeGlass=document.getElementById("themeGlass");
-const themeSkeuo=document.getElementById("themeSkeuo");
+const themeDropdown=document.getElementById("themeDropdown");
+const themeToggleBtn=document.getElementById("themeToggleBtn");
+const themeCurrentLabel=document.getElementById("themeCurrentLabel");
+const themeOptions=[...document.querySelectorAll("[data-theme-option]")];
 const codeModal=document.getElementById("codeModal");
 const codeModalTitle=document.getElementById("codeModalTitle");
 const codeModalBody=document.getElementById("codeModalBody");
@@ -2009,17 +2426,23 @@ function openSettings(){
 function closeSettings(){
   settingsOverlay.classList.remove("open");
   settingsPanel.classList.remove("open");
+  themeDropdown.classList.remove("open");
+  themeToggleBtn.setAttribute("aria-expanded","false");
 }
 
 function applyTheme(theme){
-  const normalized=(theme || "glass").toLowerCase()==="skeuo" ? "skeuo" : "glass";
+  const raw=(theme || "glass").toLowerCase();
+  const normalized=["glass","skeuo","neo"].includes(raw) ? raw : "glass";
   activeTheme=normalized;
   document.body.dataset.theme=normalized;
   localStorage.setItem("redTheme",normalized);
-  if(themeGlass && themeSkeuo){
-    themeGlass.checked=normalized==="glass";
-    themeSkeuo.checked=normalized==="skeuo";
-  }
+  const labelMap={glass:"Glass Morph", skeuo:"Skeuomorphism", neo:"Neobrutalist"};
+  themeCurrentLabel.textContent=labelMap[normalized] || "Glass Morph";
+  themeOptions.forEach(option=>{
+    const isActive=option.dataset.themeOption===normalized;
+    option.classList.toggle("active",isActive);
+    option.setAttribute("aria-checked",isActive ? "true" : "false");
+  });
 }
 
 async function loadHistoryList(){
@@ -2193,11 +2616,17 @@ closeHistoryBtn.onclick=closeHistory;
 historyOverlay.onclick=closeHistory;
 closeSettingsBtn.onclick=closeSettings;
 settingsOverlay.onclick=closeSettings;
-themeGlass.addEventListener("change",()=>{
-  if(themeGlass.checked) applyTheme("glass");
-});
-themeSkeuo.addEventListener("change",()=>{
-  if(themeSkeuo.checked) applyTheme("skeuo");
+themeToggleBtn.onclick=()=>{
+  const opening=!themeDropdown.classList.contains("open");
+  themeDropdown.classList.toggle("open",opening);
+  themeToggleBtn.setAttribute("aria-expanded",opening ? "true" : "false");
+};
+themeDropdown.addEventListener("click",(e)=>{
+  const option=e.target.closest("[data-theme-option]");
+  if(!option) return;
+  applyTheme(option.dataset.themeOption || "glass");
+  themeDropdown.classList.remove("open");
+  themeToggleBtn.setAttribute("aria-expanded","false");
 });
 newChatBtn.onclick=()=>{
   startNewChat();
@@ -2223,6 +2652,13 @@ historyList.addEventListener("click",async (e)=>{
   const item=e.target.closest("[data-id]");
   if(item){
     await loadSession(item.dataset.id);
+  }
+});
+
+document.addEventListener("click",(e)=>{
+  if(!themeDropdown.contains(e.target)){
+    themeDropdown.classList.remove("open");
+    themeToggleBtn.setAttribute("aria-expanded","false");
   }
 });
 
